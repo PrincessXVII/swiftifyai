@@ -11,13 +11,21 @@ export function AppLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isStarted, setIsStarted] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshSession } = useAuth();
   const chatWindowRef = useRef<ChatWindowHandle>(null);
   const theme = useChatStore((s) => s.settings.theme);
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
   }, [theme]);
+
+  useEffect(() => {
+    const u = new URL(window.location.href);
+    if (u.searchParams.get('payment') !== 'success') return;
+    u.searchParams.delete('payment');
+    void refreshSession();
+    window.history.replaceState({}, '', `${u.pathname}${u.search}${u.hash}`);
+  }, [refreshSession]);
 
   useAppHotkeys({
     isStarted,
@@ -80,6 +88,7 @@ export function AppLayout() {
             ref={chatWindowRef}
             onStart={() => setIsStarted(true)}
             isStarted={isStarted}
+            onRequestPlus={() => setAccountOpen(true)}
           />
         )}
       </div>

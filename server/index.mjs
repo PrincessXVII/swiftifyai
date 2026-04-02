@@ -4,7 +4,10 @@ import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { createClient } from '@supabase/supabase-js';
+import { handleYookassaWebhook } from './billingWebhook.mjs';
 import { getDailyCharUsage, recordTrialChars } from './dailyUsage.mjs';
+import { userHasPlusAccess } from './subscription.mjs';
+import { createPlusPayment, isYookassaConfigured } from './yookassa.mjs';
 
 const app = express();
 const port = Number(process.env.PORT || 8787);
@@ -33,16 +36,6 @@ function getSupabase() {
   return supabaseClient;
 }
 
-/** Дублирует логику `src/lib/userProfile.ts` — Pro без дневного лимита символов. */
-function hasSwiftifyPro(user) {
-  const meta = user.user_metadata ?? {};
-  const app = user.app_metadata ?? {};
-  if (meta.swiftify_pro === true || app.swiftify_pro === true) return true;
-  if (meta.plan === 'pro' || meta.subscription === 'pro') return true;
-  if (app.plan === 'pro' || app.subscription === 'pro') return true;
-  return false;
-}
-
 if (!yandexApiKey || !yandexModelUri) {
   console.error('YANDEX_API_KEY and YANDEX_FOLDER_ID (or YANDEX_MODEL_URI) are required');
   process.exit(1);
@@ -55,6 +48,15 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Supabase-Access-Token'],
   }),
 );
+
+app.post(
+  '/api/billing/yookassa/webhook',
+  express.raw({ type: 'application/json' }),
+  (req, res, next) => {
+    void handleYookassaWebhook(req, res).catch(next);
+  },
+);
+
 app.use(express.json({ limit: '1mb' }));
 
 app.use(
@@ -70,6 +72,63 @@ app.use(
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true });
+});
+
+async function requireSupabaseUser(req) {
+  const expectedToken = process.env.BACKEND_AUTH_TOKEN;
+  const receivedToken = req.header('authorization')?.replace(/^Bearer\s+/i, '');
+  if (expectedToken && expectedToken !== receivedToken) {
+    return { error: 'unauthorized', status: 401 };
+  }
+  const accessToken = req.header('x-supabase-access-token');
+  const supabase = getSupabase();
+  if (!supabase || !accessToken) {
+    return { error: 'auth', status: 401 };
+  }
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser(accessToken);
+  if (authError || !user) {
+    return { error: 'invalid', status: 401 };
+  }
+  return { user };
+}
+
+app.post('/api/billing/yookassa/create', async (req, res) => {
+  try {
+    if (!isYookassaConfigured()) {
+      res.status(503).json({ error: 'Оплата временно недоступна.', code: 'BILLING_DISABLED' });
+      return;
+    }
+    const auth = await requireSupabaseUser(req);
+    if (auth.error) {
+      res.status(auth.status).json({
+        error: 'Войдите в аккаунт.',
+        code: 'AUTH_REQUIRED',
+      });
+      return;
+    }
+
+    const base =
+      typeof req.body?.returnUrl === 'string' && req.body.returnUrl.trim().length > 0
+        ? req.body.returnUrl.trim()
+        : (process.env.PUBLIC_APP_URL || 'http://localhost:5173').replace(/\/$/, '');
+    const sep = base.includes('?') ? '&' : '?';
+    const returnUrl = base.includes('payment=') ? base : `${base}${sep}payment=success`;
+
+    const { confirmationUrl, paymentId } = await createPlusPayment({
+      userId: auth.user.id,
+      returnUrl,
+    });
+    res.json({ confirmationUrl, paymentId });
+  } catch (e) {
+    console.error('[billing] create', e);
+    const status = e?.status && e.status < 500 ? e.status : 500;
+    res.status(status).json({
+      error: e?.message || 'Не удалось создать платёж.',
+    });
+  }
 });
 
 /**
@@ -135,10 +194,10 @@ app.post('/api/chat', async (req, res) => {
     return;
   }
 
-  const isPro = hasSwiftifyPro(user);
+  const isPlus = userHasPlusAccess(user);
   const charCost = charCostForRequest(messages);
 
-  if (!isPro) {
+  if (!isPlus) {
     if (charCost > TRIAL_DAILY_CHARS) {
       res.status(400).json({
         error: `Одно сообщение не длиннее ${TRIAL_DAILY_CHARS} символов на пробном тарифе. Разбейте текст на части.`,
@@ -191,7 +250,7 @@ app.post('/api/chat', async (req, res) => {
     }
 
     const payload = await yandexResponse.json();
-    if (!isPro && charCost > 0) {
+    if (!isPlus && charCost > 0) {
       await recordTrialChars(user.id, charCost);
     }
     const content = payload?.result?.alternatives?.[0]?.message?.text ?? '';
@@ -214,6 +273,6 @@ app.post('/api/chat', async (req, res) => {
 app.listen(port, () => {
   console.log(`SwiftifyAI proxy listening on http://localhost:${port}`);
   console.log(
-    `Пробный тариф: до ${TRIAL_DAILY_CHARS} символов в день (по последнему пользовательскому сообщению); SwiftifyPro — без лимита.`,
+    `Пробный тариф: до ${TRIAL_DAILY_CHARS} символов в день (по последнему пользовательскому сообщению); SwiftifyPlus — без лимита.`,
   );
 });

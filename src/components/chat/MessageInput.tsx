@@ -38,9 +38,9 @@ export const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function Mess
   const handleSend = async () => {
     const payload = value.trim().slice(0, MAX_MESSAGE_INPUT_CHARS);
     if (!payload) return;
-    await onSubmit(payload);
     setValue('');
     innerRef.current?.focus();
+    await onSubmit(payload);
   };
 
   return (

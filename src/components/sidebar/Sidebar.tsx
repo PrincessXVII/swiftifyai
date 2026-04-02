@@ -118,7 +118,7 @@ const SCATTER_CAP = 112;
 export function Sidebar({ onClose, onOpenAccount }: Props) {
   const { user, isConfigured } = useAuth();
   const primaryLabel = user ? getProfilePrimaryLabel(user) : '';
-  const subBadge = user ? getSubscriptionBadge(user) : { isPro: false, label: '' };
+  const subBadge = user ? getSubscriptionBadge(user) : { isPlus: false, label: '' };
   const selectedModel = useChatStore((state) => state.settings.selectedModelId);
   const createChat = useChatStore((state) => state.createChat);
   const iceRefs = useRef<Array<HTMLSpanElement | null>>([]);
@@ -299,7 +299,9 @@ export function Sidebar({ onClose, onOpenAccount }: Props) {
                 <span className="sidebar-profile-name">{primaryLabel}</span>
                 <span
                   className={
-                    subBadge.isPro ? 'sidebar-profile-plan sidebar-profile-plan--pro' : 'sidebar-profile-plan sidebar-profile-plan--trial'
+                    subBadge.isPlus
+                      ? 'sidebar-profile-plan sidebar-profile-plan--plus'
+                      : 'sidebar-profile-plan sidebar-profile-plan--trial'
                   }
                 >
                   {subBadge.label}

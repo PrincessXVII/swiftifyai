@@ -37,11 +37,12 @@ export function ChatList({ bottomSlot }: Props) {
           {visible.length === 0 ? (
             <p className="chat-list-empty">{chats.length === 0 ? 'Нет чатов' : 'Ничего не найдено'}</p>
           ) : (
-            visible.map((chat) => (
+            visible.map((chat, index) => (
               <ChatListItem
                 key={chat.id}
                 chat={chat}
                 isActive={activeChatId === chat.id}
+                isLastInList={index === visible.length - 1}
                 onOpen={() => loadChat(chat.id)}
                 onDelete={() => deleteChat(chat.id)}
                 onTogglePin={() => togglePinChat(chat.id)}

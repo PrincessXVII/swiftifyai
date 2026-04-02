@@ -41,11 +41,22 @@ export function useAuth() {
     await supabase.auth.signOut();
   }, []);
 
+  const refreshSession = useCallback(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    const { data, error } = await supabase.auth.refreshSession();
+    if (!error && data.session) {
+      setSession(data.session);
+      setUser(data.session.user);
+    }
+  }, []);
+
   return {
     session,
     user,
     loading,
     signOut,
+    refreshSession,
     /** false → вход не настроен, главная ведёт себя как раньше (только «Начать»). */
     isConfigured: isSupabaseConfigured,
   };

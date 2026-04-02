@@ -10,7 +10,7 @@ function buildDailyLimitAssistantMessage(err: unknown): string | null {
   const remaining = typeof e.meta?.remaining === 'number' ? e.meta.remaining : null;
   const limit = typeof e.meta?.limit === 'number' ? e.meta.limit : 5000;
   const remLine = remaining === null ? '' : ` Осталось сегодня: ${remaining}.`;
-  return `Вы превысили дневной лимит пробного периода — ${limit} символов в день.${remLine} Попробуйте завтра или оформите SwiftifyPro.`;
+  return `Вы превысили дневной лимит пробного периода — ${limit} символов в день.${remLine} Попробуйте завтра или оформите SwiftifyPlus.`;
 }
 
 export function useChat() {

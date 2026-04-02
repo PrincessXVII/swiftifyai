@@ -5,18 +5,27 @@ import { formatDate } from '../../utils/formatDate';
 interface Props {
   chat: Chat;
   isActive: boolean;
+  /** Нижний чат в списке — постоянное свечение вниз. */
+  isLastInList: boolean;
   onOpen: () => void;
   onDelete: () => void;
   onTogglePin: () => void;
 }
 
-export function ChatListItem({ chat, isActive, onOpen, onDelete, onTogglePin }: Props) {
+export function ChatListItem({
+  chat,
+  isActive,
+  isLastInList,
+  onOpen,
+  onDelete,
+  onTogglePin,
+}: Props) {
   const badge = (chat.title || 'S').trim().charAt(0).toUpperCase();
   const pinned = !!chat.pinned;
 
   return (
     <div
-      className={`chat-list-item ${isActive ? 'active' : ''}`}
+      className={`chat-list-item ${isActive ? 'active' : ''} ${isLastInList ? 'chat-list-item--last' : ''}`}
       role="button"
       tabIndex={0}
       onClick={onOpen}

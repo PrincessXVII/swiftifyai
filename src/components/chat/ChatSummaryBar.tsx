@@ -46,16 +46,14 @@ export function ChatSummaryBar({ messages, isLoading }: Props) {
 
   return (
     <>
-      <div className="chat-window-toolbar">
-        <button
-          type="button"
-          className="button-secondary chat-summary-button"
-          disabled={!canSummarize || busy}
-          onClick={() => void runSummary()}
-        >
-          {busy ? 'Резюме…' : 'Резюме чата'}
-        </button>
-      </div>
+      <button
+        type="button"
+        className="button-secondary chat-summary-button"
+        disabled={!canSummarize || busy}
+        onClick={() => void runSummary()}
+      >
+        {busy ? 'Резюме…' : 'Резюме чата'}
+      </button>
 
       {open ? (
         <div

@@ -4,7 +4,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { useChat } from '../../hooks/useChat';
 import { useChatStore } from '../../store/chatStore';
 import { SwiftifyLogoMark } from '../ui/SwiftifyLogoMark';
+import { hasSwiftifyPlus } from '../../lib/userProfile';
 import { ChatSummaryBar } from './ChatSummaryBar';
+import { PlusUpgradeBanner } from './PlusUpgradeBanner';
 import { EmptyState } from './EmptyState';
 import { MessageInput } from './MessageInput';
 import { MessageList } from './MessageList';
@@ -14,6 +16,8 @@ import { Toast } from '../ui/Toast';
 interface Props {
   isStarted: boolean;
   onStart: () => void;
+  /** Если нет VITE_PLUS_UPGRADE_URL — открыть ЛК (подписка). */
+  onRequestPlus?: () => void;
 }
 
 export type ChatWindowHandle = {
@@ -21,7 +25,7 @@ export type ChatWindowHandle = {
 };
 
 export const ChatWindow = forwardRef<ChatWindowHandle, Props>(function ChatWindow(
-  { isStarted, onStart },
+  { isStarted, onStart, onRequestPlus },
   ref,
 ) {
   const { messages, isLoading, error, sendMessage, clearError } = useChat();
@@ -83,7 +87,23 @@ export const ChatWindow = forwardRef<ChatWindowHandle, Props>(function ChatWindo
         </div>
       ) : (
         <>
-          <ChatSummaryBar messages={messages} isLoading={isLoading} />
+          <div className="chat-window-topbar">
+            <div className="chat-window-topbar__cell chat-window-topbar__cell--left" aria-hidden />
+            <div className="chat-window-topbar__cell chat-window-topbar__cell--center">
+              {user && !authLoading && !hasSwiftifyPlus(user) ? (
+                <PlusUpgradeBanner
+                  onClick={() => {
+                    const url = import.meta.env.VITE_PLUS_UPGRADE_URL?.trim();
+                    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+                    else onRequestPlus?.();
+                  }}
+                />
+              ) : null}
+            </div>
+            <div className="chat-window-topbar__cell chat-window-topbar__cell--right">
+              <ChatSummaryBar messages={messages} isLoading={isLoading} />
+            </div>
+          </div>
           <div className="chat-scroll">
             {messages.length === 0 ? (
               <EmptyState />
