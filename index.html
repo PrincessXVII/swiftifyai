@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>swiftifyai</title>
+    <!-- Ускоряет загрузку self-hosted OTF; crossorigin нужен для кэша шрифтов -->
+    <link
+      rel="preload"
+      href="/fonts/sf-pro/SF-Pro-Text-Regular.otf"
+      as="font"
+      type="font/otf"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="/fonts/sf-compact/SF-Compact-Text-Regular.otf"
+      as="font"
+      type="font/otf"
+      crossorigin
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

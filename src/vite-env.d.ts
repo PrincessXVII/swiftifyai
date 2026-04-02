@@ -1,0 +1,15 @@
+/// <reference types="vite/client" />
+
+interface ImportMetaEnv {
+  readonly VITE_SUPABASE_URL?: string;
+  readonly VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY?: string;
+  readonly VITE_SUPABASE_ANON_KEY?: string;
+  readonly VITE_API_BASE_URL?: string;
+  readonly VITE_BACKEND_AUTH_TOKEN?: string;
+  /** Продакшен: https://ваш-домен.ru (без слэша в конце). Для локальной разработки не задавать. */
+  readonly VITE_SITE_URL?: string;
+}
+
+interface ImportMeta {
+  readonly env: ImportMetaEnv;
+}
