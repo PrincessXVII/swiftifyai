@@ -22,69 +22,16 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-/** Эталон сайдбара для генерации (совпадает с типичной шириной колонки и высотой окна). */
-const REF_SIDEBAR_W = 320;
-const REF_SIDEBAR_H = 900;
-
 /**
- * Зоны UI в px (от верхнего левого угла сайдбара), куда нельзя класть центры звёзд.
- * Верх: «Новый чат». Низ: плашка профиля (иконка + имя + статус).
- * Список чатов отдельно не режем — иначе не останется места для звёзд.
+ * Визуальные safe zones для полосы звёзд (логика вёрстки, не отступы в px):
+ * — Верхняя граница: сразу под нижним краем последнего блока в `.chat-list`
+ *   (нижний чат в колонке — тот, что визуально последний в списке; при пустом списке — под «Нет чатов» / «Ничего не найдено»).
+ * — Нижняя граница: сразу над верхним краем плашки профиля `.sidebar-footer`.
+ * Реализация: `.chat-list` (контент + скролл) + `.sidebar-stars` с flex:1 в одной колонке `.chat-list-stack`,
+ * футер снаружи — звёзды заполняют только промежуток между списком и профилем.
  */
-function buildUiSafeZonesPx(): Array<{ l: number; t: number; r: number; b: number; clearancePx: number }> {
-  const padX = 12;
-  const padTop = 14;
-  const padBottom = 14;
-  const innerL = padX;
-  const innerR = REF_SIDEBAR_W - padX;
-
-  const newChatH = 48;
-  const sidebarTopPb = 4;
-
-  let y = padTop;
-  const newChatT = y;
-  const newChatB = y + newChatH + sidebarTopPb;
-
-  const footerTopPad = 10;
-  /** Аватар ~48px + две строки текста + padding кнопки профиля */
-  const profileBlockH = 96;
-
-  const profileT = REF_SIDEBAR_H - padBottom - footerTopPad - profileBlockH;
-  const profileB = REF_SIDEBAR_H;
-
-  return [
-    { l: innerL, t: newChatT, r: innerR, b: newChatB, clearancePx: 16 },
-    { l: innerL, t: profileT, r: innerR, b: profileB, clearancePx: 3 },
-  ];
-}
-
-const UI_SAFE_ZONES_PX = buildUiSafeZonesPx();
-
-/** Расстояние от точки до границы прямоугольника: снаружи ≥0, внутри — отрицательное (глубина от ближайшего края). */
-function signedDistToRectPx(px: number, py: number, z: { l: number; t: number; r: number; b: number }): number {
-  const { l, t, r, b } = z;
-  const dx = px < l ? l - px : px > r ? px - r : 0;
-  const dy = py < t ? t - py : py > b ? py - b : 0;
-  if (dx === 0 && dy === 0) {
-    return -Math.min(px - l, r - px, py - t, b - py);
-  }
-  return Math.hypot(dx, dy);
-}
-
-/**
- * Запрет: центр звезды ближе, чем R + clearance зоны, к которой она ближе всего
- * (clearance задаётся у этой зоны).
- */
-function violatesNearestUiZone(px: number, py: number, starRadiusPx: number): boolean {
-  let worst = Infinity;
-  for (const z of UI_SAFE_ZONES_PX) {
-    const sd = signedDistToRectPx(px, py, z);
-    const limit = starRadiusPx + z.clearancePx;
-    const slack = sd - limit;
-    if (slack < worst) worst = slack;
-  }
-  return worst < 0;
-}
+const REF_STARS_W = 320;
+const REF_STARS_H = 260;
 
 function generateIceChunks(count: number) {
   const rand = seededRandom(26042026);
@@ -100,11 +47,10 @@ function generateIceChunks(count: number) {
     opacity: number;
   }> = [];
 
-  /** Зазор между «коробками» звёзд + запас под keyframes ice-drift (иначе при анимации наезжают) */
   const gapPx = 8;
-  /** Совпадает с макс. амплитудой drift в keyframes (чтобы slack не расходился с реальным движением) */
   const driftAmpMaxPx = 12;
   const animationSlackPx = driftAmpMaxPx * 2;
+  const padPct = 6;
 
   function effectiveRadiusPx(size: number): number {
     return (size / 2) * 1.18;
@@ -118,10 +64,10 @@ function generateIceChunks(count: number) {
     by: number,
     br: number,
   ): boolean {
-    const axPx = (ax / 100) * REF_SIDEBAR_W;
-    const ayPx = (ay / 100) * REF_SIDEBAR_H;
-    const bxPx = (bx / 100) * REF_SIDEBAR_W;
-    const byPx = (by / 100) * REF_SIDEBAR_H;
+    const axPx = (ax / 100) * REF_STARS_W;
+    const ayPx = (ay / 100) * REF_STARS_H;
+    const bxPx = (bx / 100) * REF_STARS_W;
+    const byPx = (by / 100) * REF_STARS_H;
     const minCenter = ar + br + gapPx + animationSlackPx;
     return Math.hypot(axPx - bxPx, ayPx - byPx) < minCenter;
   }
@@ -130,11 +76,11 @@ function generateIceChunks(count: number) {
 
   while (chunks.length < count && guard < count * 1200) {
     guard += 1;
-    const size = 24 + rand() * 22;
+    const size = 22 + rand() * 20;
     const radius = effectiveRadiusPx(size);
     const candidate = {
-      x: 6 + rand() * 88,
-      y: 6 + rand() * 88,
+      x: padPct + rand() * (100 - 2 * padPct),
+      y: padPct + rand() * (100 - 2 * padPct),
       size,
       shape: rand() > 0.5 ? STAR4_A : STAR4_B,
       driftX: (rand() > 0.5 ? 1 : -1) * (4 + rand() * 8),
@@ -144,11 +90,11 @@ function generateIceChunks(count: number) {
       opacity: 0.84 + rand() * 0.2,
     };
 
-    const px = (candidate.x / 100) * REF_SIDEBAR_W;
-    const py = (candidate.y / 100) * REF_SIDEBAR_H;
-    if (violatesNearestUiZone(px, py, radius)) {
-      continue;
-    }
+    const px = (candidate.x / 100) * REF_STARS_W;
+    const py = (candidate.y / 100) * REF_STARS_H;
+    const margin = padPct * 0.01 * Math.min(REF_STARS_W, REF_STARS_H);
+    if (px < margin + radius || px > REF_STARS_W - margin - radius) continue;
+    if (py < margin + radius || py > REF_STARS_H - margin - radius) continue;
 
     const overlaps = chunks.some((item) =>
       circlesOverlap(candidate.x, candidate.y, radius, item.x, item.y, effectiveRadiusPx(item.size)),
@@ -162,11 +108,11 @@ function generateIceChunks(count: number) {
   return chunks;
 }
 
-const ICE_CHUNKS = generateIceChunks(72);
+const ICE_CHUNKS = generateIceChunks(52);
 
 const SCATTER_LERP = 0.09;
-const REPEL_RADIUS_PX = 158;
-const MAX_PUSH_PX = 32;
+const REPEL_RADIUS_PX = 120;
+const MAX_PUSH_PX = 28;
 const SCATTER_CAP = 112;
 
 export function Sidebar({ onClose, onOpenAccount }: Props) {
@@ -177,6 +123,7 @@ export function Sidebar({ onClose, onOpenAccount }: Props) {
   const createChat = useChatStore((state) => state.createChat);
   const iceRefs = useRef<Array<HTMLSpanElement | null>>([]);
   const sidebarRef = useRef<HTMLElement | null>(null);
+  const icefieldRef = useRef<HTMLDivElement | null>(null);
   const pointerLocalRef = useRef<{ x: number; y: number } | null>(null);
   const scatterRef = useRef(ICE_CHUNKS.map(() => ({ x: 0, y: 0 })));
   const scatterRunningRef = useRef(false);
@@ -192,14 +139,23 @@ export function Sidebar({ onClose, onOpenAccount }: Props) {
         return;
       }
 
-      const root = sidebarRef.current;
-      if (!root) {
+      const sidebarEl = sidebarRef.current;
+      const iceEl = icefieldRef.current;
+      if (!sidebarEl || !iceEl) {
         scatterRunningRef.current = false;
         return;
       }
 
-      const rect = root.getBoundingClientRect();
+      const iceRect = iceEl.getBoundingClientRect();
+      const sbRect = sidebarEl.getBoundingClientRect();
       const pointer = pointerLocalRef.current;
+      let ptrX: number | null = null;
+      let ptrY: number | null = null;
+      if (pointer) {
+        ptrX = pointer.x - (iceRect.left - sbRect.left);
+        ptrY = pointer.y - (iceRect.top - sbRect.top);
+      }
+
       let anyMotion = false;
 
       for (let i = 0; i < ICE_CHUNKS.length; i += 1) {
@@ -207,14 +163,14 @@ export function Sidebar({ onClose, onOpenAccount }: Props) {
         const chunk = ICE_CHUNKS[i];
         if (!node || !chunk) continue;
 
-        const cx = (chunk.x / 100) * rect.width;
-        const cy = (chunk.y / 100) * rect.height;
+        const cx = (chunk.x / 100) * iceRect.width;
+        const cy = (chunk.y / 100) * iceRect.height;
 
         let tx = 0;
         let ty = 0;
-        if (pointer) {
-          const dx = pointer.x - cx;
-          const dy = pointer.y - cy;
+        if (ptrX !== null && ptrY !== null) {
+          const dx = ptrX - cx;
+          const dy = ptrY - cy;
           const dist = Math.hypot(dx, dy);
           if (dist < REPEL_RADIUS_PX && dist > 1e-4) {
             const t = (REPEL_RADIUS_PX - dist) / REPEL_RADIUS_PX;
@@ -281,33 +237,6 @@ export function Sidebar({ onClose, onOpenAccount }: Props) {
         kickScatterLoop();
       }}
     >
-      <div className="icefield" aria-hidden="true">
-        {ICE_CHUNKS.map((chunk, index) => (
-          <span
-            key={`${chunk.x}-${chunk.y}-${chunk.size}`}
-            ref={(node) => {
-              iceRefs.current[index] = node;
-            }}
-            className="ice-chunk"
-            style={
-              {
-                '--x': `${chunk.x}%`,
-                '--y': `${chunk.y}%`,
-                '--size': `${chunk.size}px`,
-                '--shape': chunk.shape,
-                '--drift-x': `${chunk.driftX}px`,
-                '--drift-y': `${chunk.driftY}px`,
-                '--duration': `${chunk.duration}s`,
-                '--delay': `${chunk.delay}s`,
-                '--opacity': chunk.opacity,
-                '--scatter-x': '0px',
-                '--scatter-y': '0px',
-              } as CSSProperties
-            }
-          />
-        ))}
-      </div>
-
       <div className="sidebar-content">
         <div className="sidebar-top">
           <NewChatButton
@@ -317,7 +246,40 @@ export function Sidebar({ onClose, onOpenAccount }: Props) {
             }}
           />
         </div>
-        <ChatList />
+
+        <ChatList
+          bottomSlot={
+            <div className="sidebar-stars" aria-hidden="true">
+              <div className="icefield" ref={icefieldRef}>
+                {ICE_CHUNKS.map((chunk, index) => (
+                  <span
+                    key={`${chunk.x}-${chunk.y}-${chunk.size}`}
+                    ref={(node) => {
+                      iceRefs.current[index] = node;
+                    }}
+                    className="ice-chunk"
+                    style={
+                      {
+                        '--x': `${chunk.x}%`,
+                        '--y': `${chunk.y}%`,
+                        '--size': `${chunk.size}px`,
+                        '--shape': chunk.shape,
+                        '--drift-x': `${chunk.driftX}px`,
+                        '--drift-y': `${chunk.driftY}px`,
+                        '--duration': `${chunk.duration}s`,
+                        '--delay': `${chunk.delay}s`,
+                        '--opacity': chunk.opacity,
+                        '--scatter-x': '0px',
+                        '--scatter-y': '0px',
+                      } as CSSProperties
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          }
+        />
+
         {isConfigured && user ? (
           <div className="sidebar-footer">
             <button

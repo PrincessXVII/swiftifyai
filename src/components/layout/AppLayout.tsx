@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { AccountPanel } from '../account/AccountPanel';
+import { useAppHotkeys } from '../../hooks/useAppHotkeys';
 import { useAuth } from '../../hooks/useAuth';
-import { ChatWindow } from '../chat/ChatWindow';
+import { ChatWindow, type ChatWindowHandle } from '../chat/ChatWindow';
 import { Sidebar } from '../sidebar/Sidebar';
 import { rehydrateChatStoreForUser, useChatStore } from '../../store/chatStore';
 import { MobileHeader } from './MobileHeader';
@@ -11,6 +12,21 @@ export function AppLayout() {
   const [isStarted, setIsStarted] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const { user, loading: authLoading } = useAuth();
+  const chatWindowRef = useRef<ChatWindowHandle>(null);
+  const theme = useChatStore((s) => s.settings.theme);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }, [theme]);
+
+  useAppHotkeys({
+    isStarted,
+    accountOpen,
+    isSidebarOpen,
+    setAccountOpen,
+    setIsSidebarOpen,
+    chatWindowRef,
+  });
 
   useEffect(() => {
     if (authLoading) return;
@@ -60,7 +76,11 @@ export function AppLayout() {
         {isStarted && accountOpen ? (
           <AccountPanel onBack={() => setAccountOpen(false)} />
         ) : (
-          <ChatWindow onStart={() => setIsStarted(true)} isStarted={isStarted} />
+          <ChatWindow
+            ref={chatWindowRef}
+            onStart={() => setIsStarted(true)}
+            isStarted={isStarted}
+          />
         )}
       </div>
 

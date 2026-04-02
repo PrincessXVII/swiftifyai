@@ -1,7 +1,9 @@
-import { useEffect } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { WelcomeAuthPanel, consumeOAuthLoginIntent } from '../auth/WelcomeAuthPanel';
 import { useAuth } from '../../hooks/useAuth';
 import { useChat } from '../../hooks/useChat';
+import { useChatStore } from '../../store/chatStore';
+import { SwiftifyLogoMark } from '../ui/SwiftifyLogoMark';
 import { ChatSummaryBar } from './ChatSummaryBar';
 import { EmptyState } from './EmptyState';
 import { MessageInput } from './MessageInput';
@@ -14,9 +16,32 @@ interface Props {
   onStart: () => void;
 }
 
-export function ChatWindow({ isStarted, onStart }: Props) {
+export type ChatWindowHandle = {
+  focusComposer: () => void;
+};
+
+export const ChatWindow = forwardRef<ChatWindowHandle, Props>(function ChatWindow(
+  { isStarted, onStart },
+  ref,
+) {
   const { messages, isLoading, error, sendMessage, clearError } = useChat();
   const { user, loading: authLoading, isConfigured, signOut } = useAuth();
+  const theme = useChatStore((s) => s.settings.theme);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const showSkeletonInThread = messages.some(
+    (m) => m.role === 'assistant' && m.isStreaming && !m.content.trim(),
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focusComposer: () => {
+        composerRef.current?.focus();
+      },
+    }),
+    [],
+  );
 
   useEffect(() => {
     if (!isConfigured || authLoading || !user) return;
@@ -31,6 +56,9 @@ export function ChatWindow({ isStarted, onStart }: Props) {
         <div className="chat-scroll chat-scroll--welcome">
           <div className="welcome-layout">
             <div className="welcome-screen welcome-screen--with-auth welcome-screen--stacked">
+              <div className="welcome-screen__brand" aria-hidden>
+                <SwiftifyLogoMark size={56} tone={theme === 'dark' ? 'dark' : 'light'} />
+              </div>
               <h1>Swiftify - место знаний</h1>
               {authLoading ? (
                 <p className="welcome-auth__loading">Загрузка…</p>
@@ -58,18 +86,15 @@ export function ChatWindow({ isStarted, onStart }: Props) {
           <ChatSummaryBar messages={messages} isLoading={isLoading} />
           <div className="chat-scroll">
             {messages.length === 0 ? (
-              <EmptyState
-                onPickPrompt={(prompt) => {
-                  void sendMessage(prompt);
-                }}
-              />
+              <EmptyState />
             ) : (
               <MessageList messages={messages} />
             )}
           </div>
           <div className="chat-input-footer">
-            {isLoading && <TypingIndicator />}
+            {isLoading && !showSkeletonInThread && <TypingIndicator />}
             <MessageInput
+              ref={composerRef}
               isLoading={isLoading}
               onSubmit={async (value) => {
                 await sendMessage(value);
@@ -81,4 +106,4 @@ export function ChatWindow({ isStarted, onStart }: Props) {
       {error && <Toast type="error" message={error} onClose={clearError} />}
     </section>
   );
-}
+});

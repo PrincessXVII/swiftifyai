@@ -1,4 +1,6 @@
 import { ChevronLeft, Menu } from 'lucide-react';
+import { useChatStore } from '../../store/chatStore';
+import { SwiftifyLogoMark } from '../ui/SwiftifyLogoMark';
 import { ThemeToggle } from '../ui/ThemeToggle';
 
 interface Props {
@@ -9,6 +11,7 @@ interface Props {
 }
 
 export function MobileHeader({ onMenuClick, accountMode, onBackFromAccount }: Props) {
+  const theme = useChatStore((s) => s.settings.theme);
   return (
     <header className="mobile-header">
       {accountMode ? (
@@ -25,7 +28,12 @@ export function MobileHeader({ onMenuClick, accountMode, onBackFromAccount }: Pr
           <Menu size={18} />
         </button>
       )}
-      <strong>{accountMode ? 'Личный кабинет' : 'SwiftifyAI'}</strong>
+      <div className="mobile-header__brand">
+        {!accountMode ? (
+          <SwiftifyLogoMark size={26} tone={theme === 'dark' ? 'dark' : 'light'} />
+        ) : null}
+        <strong>{accountMode ? 'Личный кабинет' : 'SwiftifyAI'}</strong>
+      </div>
       <ThemeToggle />
     </header>
   );

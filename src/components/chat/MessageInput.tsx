@@ -1,5 +1,5 @@
 import { Send } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useRef, useState } from 'react';
 import { MAX_MESSAGE_INPUT_CHARS } from '../../constants/limits';
 
 interface Props {
@@ -8,16 +8,28 @@ interface Props {
   initialValue?: string;
 }
 
-export function MessageInput({ isLoading, onSubmit, initialValue = '' }: Props) {
+export const MessageInput = forwardRef<HTMLTextAreaElement, Props>(function MessageInput(
+  { isLoading, onSubmit, initialValue = '' },
+  forwardedRef,
+) {
   const [value, setValue] = useState(initialValue);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const innerRef = useRef<HTMLTextAreaElement | null>(null);
+
+  const setRefs = (el: HTMLTextAreaElement | null) => {
+    innerRef.current = el;
+    if (typeof forwardedRef === 'function') {
+      forwardedRef(el);
+    } else if (forwardedRef) {
+      forwardedRef.current = el;
+    }
+  };
 
   useEffect(() => {
     setValue(initialValue);
   }, [initialValue]);
 
   useEffect(() => {
-    const el = textareaRef.current;
+    const el = innerRef.current;
     if (!el) return;
     el.style.height = '0px';
     el.style.height = `${Math.min(el.scrollHeight, 180)}px`;
@@ -28,14 +40,14 @@ export function MessageInput({ isLoading, onSubmit, initialValue = '' }: Props) 
     if (!payload) return;
     await onSubmit(payload);
     setValue('');
-    textareaRef.current?.focus();
+    innerRef.current?.focus();
   };
 
   return (
     <div className="message-input-wrap">
       <div className="message-input-inner">
         <textarea
-          ref={textareaRef}
+          ref={setRefs}
           value={value}
           maxLength={MAX_MESSAGE_INPUT_CHARS}
           onChange={(e) => setValue(e.target.value.slice(0, MAX_MESSAGE_INPUT_CHARS))}
@@ -48,6 +60,7 @@ export function MessageInput({ isLoading, onSubmit, initialValue = '' }: Props) 
           rows={1}
           disabled={isLoading}
           placeholder="Сообщение"
+          data-swiftify-composer
         />
         <button disabled={isLoading || !value.trim()} onClick={() => void handleSend()}>
           <Send size={16} />
@@ -55,4 +68,4 @@ export function MessageInput({ isLoading, onSubmit, initialValue = '' }: Props) 
       </div>
     </div>
   );
-}
+});

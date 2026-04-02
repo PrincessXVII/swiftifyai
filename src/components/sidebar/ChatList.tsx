@@ -1,10 +1,15 @@
 import { Search } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useChatHistory } from '../../hooks/useChatHistory';
 import { chatMatchesSearchQuery } from '../../utils/chatSearch';
 import { ChatListItem } from './ChatListItem';
 
-export function ChatList() {
+interface Props {
+  /** Слот сразу под прокручиваемым списком (например полоса звёзд до плашки профиля). */
+  bottomSlot?: ReactNode;
+}
+
+export function ChatList({ bottomSlot }: Props) {
   const [query, setQuery] = useState('');
   const { chats, activeChatId, loadChat, deleteChat, togglePinChat } = useChatHistory();
 
@@ -27,21 +32,24 @@ export function ChatList() {
           autoComplete="off"
         />
       </div>
-      <div className="chat-list">
-        {visible.length === 0 ? (
-          <p className="chat-list-empty">{chats.length === 0 ? 'Нет чатов' : 'Ничего не найдено'}</p>
-        ) : (
-          visible.map((chat) => (
-            <ChatListItem
-              key={chat.id}
-              chat={chat}
-              isActive={activeChatId === chat.id}
-              onOpen={() => loadChat(chat.id)}
-              onDelete={() => deleteChat(chat.id)}
-              onTogglePin={() => togglePinChat(chat.id)}
-            />
-          ))
-        )}
+      <div className="chat-list-stack">
+        <div className="chat-list">
+          {visible.length === 0 ? (
+            <p className="chat-list-empty">{chats.length === 0 ? 'Нет чатов' : 'Ничего не найдено'}</p>
+          ) : (
+            visible.map((chat) => (
+              <ChatListItem
+                key={chat.id}
+                chat={chat}
+                isActive={activeChatId === chat.id}
+                onOpen={() => loadChat(chat.id)}
+                onDelete={() => deleteChat(chat.id)}
+                onTogglePin={() => togglePinChat(chat.id)}
+              />
+            ))
+          )}
+        </div>
+        {bottomSlot}
       </div>
     </div>
   );
