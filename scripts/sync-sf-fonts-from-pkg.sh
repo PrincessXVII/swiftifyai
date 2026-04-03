@@ -79,4 +79,4 @@ fi
 [[ -n "$PRO_PKG" ]] && copy_pro "$PRO_PKG"
 [[ -n "$COMPACT_PKG" ]] && copy_compact "$COMPACT_PKG"
 
-echo "Готово. Проверьте: npm run build"
+echo "Готово. После обновления OTF: npm run fonts:subset  затем npm run build"

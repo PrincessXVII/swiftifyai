@@ -1,15 +1,13 @@
 /**
- * Self-hosted OTF — отдельные имена семейств (* Web), иначе Safari/macOS берёт local()
- * и ваши файлы из /fonts/ не загружаются (визуально «ничего не меняется»).
+ * Подмноженные WOFF2 (npm run fonts:subset). Не подключать сырые OTF в веб — они по несколько MiB.
  */
 
-/* --- SF Compact Text — чат */
 @font-face {
   font-family: 'SF Compact Text Web';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/sf-compact/SF-Compact-Text-Regular.otf') format('opentype');
+  src: url('/fonts/sf-compact/SF-Compact-Text-Regular.woff2') format('woff2');
 }
 
 @font-face {
@@ -17,7 +15,7 @@
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('/fonts/sf-compact/SF-Compact-Text-Medium.otf') format('opentype');
+  src: url('/fonts/sf-compact/SF-Compact-Text-Medium.woff2') format('woff2');
 }
 
 @font-face {
@@ -25,7 +23,7 @@
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('/fonts/sf-compact/SF-Compact-Text-Semibold.otf') format('opentype');
+  src: url('/fonts/sf-compact/SF-Compact-Text-Semibold.woff2') format('woff2');
 }
 
 @font-face {
@@ -33,16 +31,15 @@
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('/fonts/sf-compact/SF-Compact-Text-Bold.otf') format('opentype');
+  src: url('/fonts/sf-compact/SF-Compact-Text-Bold.woff2') format('woff2');
 }
 
-/* --- SF Pro Text — интерфейс */
 @font-face {
   font-family: 'SF Pro Text Web';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/sf-pro/SF-Pro-Text-Regular.otf') format('opentype');
+  src: url('/fonts/sf-pro/SF-Pro-Text-Regular.woff2') format('woff2');
 }
 
 @font-face {
@@ -50,7 +47,7 @@
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src: url('/fonts/sf-pro/SF-Pro-Text-Medium.otf') format('opentype');
+  src: url('/fonts/sf-pro/SF-Pro-Text-Medium.woff2') format('woff2');
 }
 
 @font-face {
@@ -58,7 +55,7 @@
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('/fonts/sf-pro/SF-Pro-Text-Semibold.otf') format('opentype');
+  src: url('/fonts/sf-pro/SF-Pro-Text-Semibold.woff2') format('woff2');
 }
 
 @font-face {
@@ -66,16 +63,15 @@
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url('/fonts/sf-pro/SF-Pro-Text-Bold.otf') format('opentype');
+  src: url('/fonts/sf-pro/SF-Pro-Text-Bold.woff2') format('woff2');
 }
 
-/* --- SF Pro Display */
 @font-face {
   font-family: 'SF Pro Display Web';
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url('/fonts/sf-pro/SF-Pro-Display-Regular.otf') format('opentype');
+  src: url('/fonts/sf-pro/SF-Pro-Display-Regular.woff2') format('woff2');
 }
 
 @font-face {
@@ -83,5 +79,5 @@
   font-style: normal;
   font-weight: 600;
   font-display: swap;
-  src: url('/fonts/sf-pro/SF-Pro-Display-Semibold.otf') format('opentype');
+  src: url('/fonts/sf-pro/SF-Pro-Display-Semibold.woff2') format('woff2');
 }

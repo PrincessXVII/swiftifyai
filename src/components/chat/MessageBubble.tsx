@@ -1,8 +1,11 @@
 import { Copy } from 'lucide-react';
-import { useCallback, useState } from 'react';
+import { lazy, Suspense, useCallback, useState } from 'react';
 import type { Message } from '../../types';
 import { AssistantSkeleton } from './AssistantSkeleton';
-import { MarkdownRenderer } from './MarkdownRenderer';
+
+const MarkdownRenderer = lazy(() =>
+  import('./MarkdownRenderer').then((m) => ({ default: m.MarkdownRenderer })),
+);
 
 interface Props {
   message: Message;
@@ -36,7 +39,13 @@ export function MessageBubble({ message }: Props) {
             <AssistantSkeleton />
           ) : (
             <>
-              <MarkdownRenderer content={message.content} />
+              <Suspense
+                fallback={
+                  <div className="markdown-deferred-fallback">{message.content}</div>
+                }
+              >
+                <MarkdownRenderer content={message.content} />
+              </Suspense>
               <span className="timestamp">
                 {new Date(message.createdAt).toLocaleTimeString('ru-RU', {
                   hour: '2-digit',

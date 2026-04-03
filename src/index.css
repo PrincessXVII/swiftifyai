@@ -24,13 +24,13 @@
   --radius-xl: 24px;
   --curve-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --curve-emphasis: cubic-bezier(0.34, 1.1, 0.64, 1);
-  /* Self-hosted * Web из sf-hosted-fonts.css; дальше системные fallback */
+  /* WOFF2 из sf-hosted-fonts.css; fallback — системный UI */
   --font-sf-pro:
-    'SF Pro Text Web', 'SF Pro Display Web', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    'SF Pro Text Web', 'SF Pro Display Web', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI',
+    Roboto, sans-serif;
   --font-sf-compact:
-    'SF Compact Text Web', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  --font-main-menu:
-    'SF Pro Text Web', -apple-system, BlinkMacSystemFont, sans-serif;
+    'SF Compact Text Web', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-main-menu: 'SF Pro Text Web', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 }
 
 html.dark {
@@ -1409,6 +1409,12 @@ html.dark .welcome-screen__brand svg {
 }
 
 /* Код в сообщениях — моноширинный стек системы */
+/* Пока грузится чанк react-markdown + prism */
+.markdown-deferred-fallback {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .message-bubble .code-block,
 .message-bubble .code-block *,
 .message-bubble pre,
