@@ -17,11 +17,18 @@ export function AppLayout() {
   const setTheme = useChatStore((s) => s.setTheme);
 
   useEffect(() => {
-    if (window.matchMedia('(max-width: 767px)').matches && theme !== 'dark') {
-      setTheme('dark');
-      return;
-    }
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    const mq = window.matchMedia('(max-width: 767px)');
+    const applyRootTheme = () => {
+      const mobile = mq.matches;
+      const t = useChatStore.getState().settings.theme;
+      if (mobile && t !== 'dark') {
+        setTheme('dark');
+      }
+      document.documentElement.classList.toggle('dark', mobile || useChatStore.getState().settings.theme === 'dark');
+    };
+    applyRootTheme();
+    mq.addEventListener('change', applyRootTheme);
+    return () => mq.removeEventListener('change', applyRootTheme);
   }, [theme, setTheme]);
 
   useEffect(() => {

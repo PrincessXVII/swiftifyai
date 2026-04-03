@@ -84,6 +84,13 @@ body {
   transition: background 260ms ease-out, color 220ms ease-out;
 }
 
+html.dark body {
+  background:
+    radial-gradient(120% 70% at 15% 0%, rgba(120, 140, 200, 0.12) 0%, rgba(0, 0, 0, 0) 55%),
+    radial-gradient(80% 50% at 85% 10%, rgba(255, 210, 74, 0.06) 0%, rgba(0, 0, 0, 0) 60%),
+    linear-gradient(180deg, #0f1117 0%, #0b0b0d 100%);
+}
+
 .app-layout {
   display: grid;
   grid-template-columns: 1fr;
@@ -2173,8 +2180,25 @@ html:not(.dark) .empty-state__logo {
     max-width: 92%;
   }
 
+  .chat-scroll--welcome {
+    justify-content: center;
+    align-items: stretch;
+  }
+
+  .welcome-layout {
+    justify-content: center;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .welcome-screen.welcome-screen--stacked {
+    flex: 0 1 auto;
+    min-height: 0;
+    width: 100%;
+  }
+
   .welcome-screen {
-    min-height: 48dvh;
+    min-height: auto;
     gap: 22px;
   }
 
