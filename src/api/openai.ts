@@ -1,3 +1,4 @@
+import { API_BASE_MISSING_CODE, createApiBaseMissingError, getApiBaseUrl } from '../lib/apiBase';
 import { getSupabaseClient } from '../lib/supabase';
 
 export type OpenAIMessage = {
@@ -28,6 +29,12 @@ export function mapOpenAIError(error: unknown): string {
   const msg = typeof err?.message === 'string' ? err.message.trim() : '';
 
   if (!navigator.onLine) return 'Нет подключения к интернету. Проверьте соединение.';
+  if (err?.code === API_BASE_MISSING_CODE) {
+    return 'Сервер чата не подключён: для продакшена в сборке нужен VITE_API_BASE_URL (HTTPS-адрес API).';
+  }
+  if (/networkerror|failed to fetch|load failed/i.test(msg)) {
+    return 'Сервер чата недоступен. Убедитесь, что API с HTTPS указан в VITE_API_BASE_URL и бэкенд запущен (CORS для swiftify.ru).';
+  }
   if (status === 401) return msg || 'Войдите в аккаунт.';
   if (status === 400) return msg || 'Запрос отклонён. Проверьте длину сообщения.';
   if (status === 429) return msg || 'Слишком много запросов. Попробуйте позже.';
@@ -44,7 +51,11 @@ export async function streamChatCompletion(
   onChunk: (chunk: string) => void,
   options?: { kind?: ChatRequestKind },
 ): Promise<void> {
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787';
+  const apiBase = getApiBaseUrl();
+  if (!apiBase) {
+    throw createApiBaseMissingError();
+  }
+
   const authToken = import.meta.env.VITE_BACKEND_AUTH_TOKEN;
   const accessToken = await getSupabaseAccessToken();
 

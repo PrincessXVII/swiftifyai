@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { pickRandomWelcomeQuote } from '../../constants/welcomeQuotes';
 import { WelcomeAuthPanel, consumeOAuthLoginIntent } from '../auth/WelcomeAuthPanel';
 import { useAuth } from '../../hooks/useAuth';
 import { useChat } from '../../hooks/useChat';
@@ -32,6 +33,19 @@ export const ChatWindow = forwardRef<ChatWindowHandle, Props>(function ChatWindo
   const { user, loading: authLoading, isConfigured, signOut } = useAuth();
   const theme = useChatStore((s) => s.settings.theme);
   const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const [welcomeHeadline, setWelcomeHeadline] = useState(() => pickRandomWelcomeQuote());
+  const hadStartedChatRef = useRef(false);
+
+  useEffect(() => {
+    if (isStarted) {
+      hadStartedChatRef.current = true;
+      return;
+    }
+    if (hadStartedChatRef.current) {
+      setWelcomeHeadline(pickRandomWelcomeQuote());
+      hadStartedChatRef.current = false;
+    }
+  }, [isStarted]);
 
   const showSkeletonInThread = messages.some(
     (m) => m.role === 'assistant' && m.isStreaming && !m.content.trim(),
@@ -63,7 +77,9 @@ export const ChatWindow = forwardRef<ChatWindowHandle, Props>(function ChatWindo
               <div className="welcome-screen__brand" aria-hidden>
                 <SwiftifyLogoMark size={56} tone={theme === 'dark' ? 'dark' : 'light'} />
               </div>
-              <h1>Swiftify - место знаний</h1>
+              <div className="welcome-screen__headline-wrap">
+                <h1 className="welcome-screen__headline">{welcomeHeadline}</h1>
+              </div>
               {authLoading ? (
                 <p className="welcome-auth__loading">Загрузка…</p>
               ) : !isConfigured || user ? (

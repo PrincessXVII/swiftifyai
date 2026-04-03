@@ -1,7 +1,11 @@
+import { createApiBaseMissingError, getApiBaseUrl } from '../lib/apiBase';
 import { getSupabaseClient } from '../lib/supabase';
 
 export async function createYookassaPlusPayment(returnUrl: string): Promise<{ confirmationUrl: string }> {
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8787';
+  const apiBase = getApiBaseUrl();
+  if (!apiBase) {
+    throw createApiBaseMissingError();
+  }
   const authToken = import.meta.env.VITE_BACKEND_AUTH_TOKEN;
   const supabase = getSupabaseClient();
   if (!supabase) {
