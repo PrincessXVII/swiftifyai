@@ -38,6 +38,9 @@ export function useAppHotkeys({
     };
 
     const onKeyDown = (e: KeyboardEvent) => {
+      const isMobile = window.matchMedia('(max-width: 767px)').matches;
+      if (isMobile) return;
+
       const mod = e.metaKey || e.ctrlKey;
       const alt = e.altKey;
       const key = e.key;

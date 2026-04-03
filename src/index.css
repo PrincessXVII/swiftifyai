@@ -1847,6 +1847,12 @@ html:not(.dark) .empty-state__logo {
   font-size: 16px;
 }
 
+.mobile-header__spacer {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+}
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -2184,6 +2190,10 @@ html:not(.dark) .empty-state__logo {
 
   .welcome-screen h1.welcome-screen__headline {
     font-size: clamp(16px, 4.2vw + 0.35rem, 34px);
+  }
+
+  .empty-state__shortcuts {
+    display: none;
   }
 
   .chat-window {

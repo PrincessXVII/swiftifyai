@@ -14,10 +14,15 @@ export function AppLayout() {
   const { user, loading: authLoading, refreshSession } = useAuth();
   const chatWindowRef = useRef<ChatWindowHandle>(null);
   const theme = useChatStore((s) => s.settings.theme);
+  const setTheme = useChatStore((s) => s.setTheme);
 
   useEffect(() => {
+    if (window.matchMedia('(max-width: 767px)').matches && theme !== 'dark') {
+      setTheme('dark');
+      return;
+    }
     document.documentElement.classList.toggle('dark', theme === 'dark');
-  }, [theme]);
+  }, [theme, setTheme]);
 
   useEffect(() => {
     const u = new URL(window.location.href);
