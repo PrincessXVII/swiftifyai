@@ -612,6 +612,7 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   overflow: hidden;
   overflow-x: hidden;
@@ -810,6 +811,7 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   padding: 12px 20px 0;
   gap: 0;
@@ -2130,7 +2132,10 @@ html:not(.dark) .empty-state__logo {
 }
 
 @media (max-width: 1023px) {
-  .app-layout {
+  /* Важно: иначе .app-layout.started перебивает колонками 320px 1fr, а скрытый сайдбар
+     оставляет main-pane в первой ячейке — весь чат сжимается до ~320px. */
+  .app-layout,
+  .app-layout.started {
     grid-template-columns: 1fr;
   }
 
@@ -2167,8 +2172,28 @@ html:not(.dark) .empty-state__logo {
     gap: 22px;
   }
 
+  /* Широкий breakout заголовка даёт горизонтальный скролл на телефоне */
+  .welcome-screen.welcome-screen--stacked .welcome-screen__headline-wrap {
+    width: 100%;
+    max-width: 100%;
+    left: auto;
+    transform: none;
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  .welcome-screen h1.welcome-screen__headline {
+    font-size: clamp(16px, 4.2vw + 0.35rem, 34px);
+  }
+
   .chat-window {
-    padding: 12px 10px 0;
+    padding: 10px 12px 0;
+    padding-top: max(8px, env(safe-area-inset-top));
+  }
+
+  .mobile-header {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
   }
 
   .sidebar {
