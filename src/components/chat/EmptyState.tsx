@@ -16,7 +16,7 @@ export function EmptyState() {
           Умный ассистент в одном чате: планы и задачи, письма и тексты, конспекты и разбор вопросов — без
           переключения между сервисами.
         </p>
-        <p>
+        <p className="empty-state__enter-hint">
           Напишите запрос в поле ниже. <kbd className="empty-state__kbd">Enter</kbd> — отправить,{' '}
           <kbd className="empty-state__kbd">Shift</kbd>+<kbd className="empty-state__kbd">Enter</kbd> — новая
           строка.

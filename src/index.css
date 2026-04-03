@@ -2192,6 +2192,10 @@ html:not(.dark) .empty-state__logo {
     font-size: clamp(16px, 4.2vw + 0.35rem, 34px);
   }
 
+  .empty-state__enter-hint {
+    display: none;
+  }
+
   .empty-state__shortcuts {
     display: none;
   }
