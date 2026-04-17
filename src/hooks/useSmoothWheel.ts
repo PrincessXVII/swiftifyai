@@ -24,25 +24,24 @@ function normalizeDeltaY(event: WheelEvent): number {
   return event.deltaY;
 }
 
-function findScrollableParent(start: Element | null, deltaY: number): HTMLElement | null {
-  let node: Element | null = start;
+function canScrollInDirection(el: HTMLElement, deltaY: number): boolean {
+  const style = window.getComputedStyle(el);
+  if (!SCROLLABLE_OVERFLOW_RE.test(style.overflowY)) return false;
+  if (el.scrollHeight <= el.clientHeight + 1) return false;
+  const atTop = el.scrollTop <= 0;
+  const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+  if (deltaY < 0) return !atTop;
+  if (deltaY > 0) return !atBottom;
+  return false;
+}
 
-  while (node) {
-    if (node instanceof HTMLElement) {
-      const style = window.getComputedStyle(node);
-      const canOverflow = SCROLLABLE_OVERFLOW_RE.test(style.overflowY);
-      const canScroll = node.scrollHeight > node.clientHeight + 1;
-      if (canOverflow && canScroll) {
-        const atTop = node.scrollTop <= 0;
-        const atBottom = node.scrollTop + node.clientHeight >= node.scrollHeight - 1;
-        if ((deltaY < 0 && !atTop) || (deltaY > 0 && !atBottom)) {
-          return node;
-        }
-      }
-    }
-    node = node.parentElement;
-  }
-
+/** Основной чат и список чатов в сайдбаре — явный поиск, без обхода по overflow. */
+function resolveScrollRoot(target: Element | null, deltaY: number): HTMLElement | null {
+  if (!(target instanceof Element)) return null;
+  const chat = target.closest('.chat-scroll');
+  if (chat instanceof HTMLElement && canScrollInDirection(chat, deltaY)) return chat;
+  const list = target.closest('.chat-list');
+  if (list instanceof HTMLElement && canScrollInDirection(list, deltaY)) return list;
   return null;
 }
 
@@ -50,9 +49,12 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function isMobileWidth(): boolean {
+  return window.matchMedia('(max-width: 767px)').matches;
+}
+
 export function useSmoothWheel() {
   useEffect(() => {
-    /* Тач-скролл не шлёт wheel — плавность там нативная. Отключаем только при reduced motion. */
     if (prefersReducedMotion()) return;
 
     const states = new WeakMap<HTMLElement, ScrollState>();
@@ -73,15 +75,15 @@ export function useSmoothWheel() {
     const animate = (el: HTMLElement, state: ScrollState) => {
       const maxTop = Math.max(0, el.scrollHeight - el.clientHeight);
       state.target = clamp(state.target, 0, maxTop);
-      state.current += (state.target - state.current) * 0.16;
+      state.current += (state.target - state.current) * 0.12;
 
-      if (Math.abs(state.target - state.current) < 0.4) {
+      if (Math.abs(state.target - state.current) < 0.35) {
         state.current = state.target;
       }
 
       el.scrollTop = state.current;
 
-      if (Math.abs(state.target - state.current) < 0.4) {
+      if (Math.abs(state.target - state.current) < 0.35) {
         state.rafId = null;
         return;
       }
@@ -90,16 +92,17 @@ export function useSmoothWheel() {
     };
 
     const onWheel = (event: WheelEvent) => {
+      if (isMobileWidth()) return;
       if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
       if (Math.abs(event.deltaY) < 0.1 || event.shiftKey) return;
       if (isEditableTarget(event.target)) return;
 
       const target = event.target instanceof Element ? event.target : null;
-      const scrollable = findScrollableParent(target, event.deltaY);
+      const scrollable = resolveScrollRoot(target, event.deltaY);
       if (!scrollable || scrollable.dataset.smoothWheel === 'off') return;
 
       const delta = normalizeDeltaY(event);
-      const speed = Math.abs(delta) > 40 ? 0.9 : 0.72;
+      const speed = Math.abs(delta) > 40 ? 0.95 : 0.78;
 
       event.preventDefault();
 
@@ -117,7 +120,8 @@ export function useSmoothWheel() {
       }
     };
 
-    window.addEventListener('wheel', onWheel, { passive: false, capture: true });
-    return () => window.removeEventListener('wheel', onWheel, true);
+    const opts: AddEventListenerOptions = { passive: false, capture: true };
+    window.addEventListener('wheel', onWheel, opts);
+    return () => window.removeEventListener('wheel', onWheel, opts);
   }, []);
 }
