@@ -32,7 +32,7 @@ export const ChatWindow = forwardRef<ChatWindowHandle, Props>(function ChatWindo
   const { messages, isLoading, error, sendMessage, clearError } = useChat();
   const { user, loading: authLoading, isConfigured, signOut } = useAuth();
   const theme = useChatStore((s) => s.settings.theme);
-  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerRef = useRef<HTMLInputElement | null>(null);
   const [welcomeHeadline, setWelcomeHeadline] = useState(() => pickRandomWelcomeQuote());
   const hadStartedChatRef = useRef(false);
 
