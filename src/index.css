@@ -24,6 +24,9 @@
   --radius-xl: 24px;
   --curve-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
   --curve-emphasis: cubic-bezier(0.34, 1.1, 0.64, 1);
+  --curve-smooth: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-fast: 180ms;
+  --motion-base: 260ms;
   /* WOFF2 из sf-hosted-fonts.css; fallback — системный UI */
   --font-sf-pro:
     'SF Pro Text Web', 'SF Pro Display Web', -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI',
@@ -54,6 +57,17 @@ html.dark {
 
 * {
   box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 html {
@@ -203,6 +217,21 @@ html.dark body {
   border: 0;
   cursor: pointer;
   font: inherit;
+}
+
+.model-item,
+.chat-list-item,
+.icon-button,
+.button-secondary,
+.button-danger,
+.button-warning,
+.message-copy-btn {
+  transition:
+    transform var(--motion-fast) var(--curve-smooth),
+    background-color var(--motion-base) var(--curve-smooth),
+    color var(--motion-fast) var(--curve-smooth),
+    box-shadow var(--motion-base) var(--curve-smooth),
+    border-color var(--motion-base) var(--curve-smooth);
 }
 
 .new-chat-button {
@@ -993,6 +1022,7 @@ html.dark body {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  scroll-behavior: smooth;
 }
 
 .chat-scroll::-webkit-scrollbar {
