@@ -210,7 +210,7 @@ html.dark body {
 .model-item,
 .chat-list-item,
 .icon-button,
-.message-input-inner button,
+#swiftify-composer-root #filter-icon,
 .button-secondary,
 .button-danger,
 .button-warning {
@@ -224,8 +224,7 @@ html.dark body {
 .icon-button,
 .button-secondary,
 .button-danger,
-.button-warning,
-.message-copy-btn {
+.button-warning {
   transition:
     transform var(--motion-fast) var(--curve-smooth),
     background-color var(--motion-base) var(--curve-smooth),
@@ -1496,78 +1495,6 @@ html.dark .welcome-screen__brand svg {
     0 0 0 1px rgba(182, 182, 182, 0.22);
 }
 
-.message-copy-row {
-  display: flex;
-  align-self: stretch;
-  justify-content: flex-end;
-  max-height: 0;
-  margin-top: 0;
-  overflow: hidden;
-  opacity: 0;
-  pointer-events: none;
-  transition:
-    max-height 200ms var(--curve-standard),
-    opacity 160ms var(--curve-standard),
-    margin-top 200ms var(--curve-standard);
-}
-
-.message-row.assistant .message-copy-row {
-  justify-content: flex-start;
-}
-
-.message-bubble-block:hover .message-copy-row,
-.message-bubble-block:focus-within .message-copy-row {
-  max-height: 40px;
-  margin-top: 6px;
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.message-copy-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 4px;
-  margin: 0;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-sm);
-  transition: color 160ms var(--curve-standard);
-}
-
-.message-copy-btn:hover {
-  color: var(--color-text-primary);
-}
-
-.message-copy-btn:focus-visible {
-  outline: 2px solid rgba(110, 142, 255, 0.55);
-  outline-offset: 2px;
-}
-
-.message-copy-btn__icon {
-  flex-shrink: 0;
-  opacity: 0.92;
-}
-
-.message-copy-btn__label {
-  white-space: nowrap;
-}
-
-@media (hover: none) {
-  .message-copy-row {
-    max-height: 40px;
-    margin-top: 6px;
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
-
 .assistant-skeleton {
   display: flex;
   flex-direction: column;
@@ -1655,28 +1582,6 @@ html.dark .welcome-screen__brand svg {
   letter-spacing: 0.01em;
 }
 
-.message-input-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: var(--color-bg-secondary);
-  border: 1px solid var(--color-separator);
-  backdrop-filter: var(--blur-large);
-  -webkit-backdrop-filter: var(--blur-large);
-  border-radius: var(--radius-xl);
-  padding: 9px;
-  box-shadow: var(--shadow-floating);
-  transition:
-    border-color 220ms var(--curve-standard),
-    box-shadow 220ms var(--curve-standard);
-}
-
-.message-input-inner {
-  display: flex;
-  align-items: flex-end;
-  gap: 8px;
-}
-
 .message-input-counter {
   font-size: 11px;
   color: var(--color-text-tertiary);
@@ -1685,54 +1590,6 @@ html.dark .welcome-screen__brand svg {
   letter-spacing: 0.02em;
 }
 
-.message-input-wrap:focus-within {
-  border-color: rgba(240, 191, 47, 0.52);
-  box-shadow:
-    var(--shadow-elevated),
-    0 0 0 3px rgba(255, 218, 102, 0.24);
-}
-
-.message-input-wrap textarea {
-  width: 100%;
-  resize: none;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--color-text-primary);
-  font: inherit;
-  line-height: 1.35;
-  font-size: 16px;
-  padding: 7px 10px;
-}
-
-.message-input-inner button {
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  background: linear-gradient(180deg, #ffe07c 0%, #f0bf2f 100%);
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition:
-    transform 140ms var(--curve-emphasis),
-    background 180ms var(--curve-standard),
-    box-shadow 220ms var(--curve-standard);
-}
-
-.message-input-inner button:hover:not(:disabled) {
-  background: var(--color-accent-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-soft);
-}
-
-.message-input-inner button:active:not(:disabled) {
-  transform: scale(0.97);
-}
-
-.message-input-inner button:disabled {
-  opacity: 0.5;
-}
 
 .typing-indicator {
   display: inline-flex;
