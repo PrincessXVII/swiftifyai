@@ -1,9 +1,21 @@
 import { createApiBaseMissingError, getApiBaseUrl } from '../lib/apiBase';
 import { getSupabaseClient } from '../lib/supabase';
 
-export async function createYookassaPlusPayment(returnUrl: string): Promise<{ confirmationUrl: string }> {
+function getBillingApiBaseUrl(): string {
+  const raw = import.meta.env.VITE_BILLING_API_BASE_URL?.trim();
+  if (raw) return raw.replace(/\/$/, '');
+
+  // Платежные функции живут в Cloudflare Pages (`/functions/api/**`), поэтому
+  // в браузере приоритетно используем same-origin, даже если общий API вынесен отдельно.
+  if (typeof window !== 'undefined') return '';
+
   const apiBase = getApiBaseUrl();
-  if (!apiBase && typeof window === 'undefined') throw createApiBaseMissingError();
+  if (!apiBase) throw createApiBaseMissingError();
+  return apiBase;
+}
+
+export async function createYookassaPlusPayment(returnUrl: string): Promise<{ confirmationUrl: string }> {
+  const apiBase = getBillingApiBaseUrl();
   const authToken = import.meta.env.VITE_BACKEND_AUTH_TOKEN;
   const supabase = getSupabaseClient();
   if (!supabase) {
@@ -31,7 +43,7 @@ export async function createYookassaPlusPayment(returnUrl: string): Promise<{ co
     });
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') {
-      throw new Error('Сервер оплаты не отвечает. Проверьте VITE_API_BASE_URL и деплой Pages Functions.');
+      throw new Error('Сервер оплаты не отвечает. Проверьте деплой Pages Functions и VITE_BILLING_API_BASE_URL.');
     }
     throw e;
   } finally {
