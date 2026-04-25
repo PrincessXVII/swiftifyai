@@ -4,7 +4,22 @@
  */
 export function getApiBaseUrl(): string {
   const raw = import.meta.env.VITE_API_BASE_URL?.trim();
-  if (raw) return raw.replace(/\/$/, '');
+  if (raw) {
+    const normalized = raw.replace(/\/$/, '');
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+      try {
+        const url = new URL(normalized, window.location.origin);
+        const host = url.hostname;
+        if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0') {
+          // На проде localhost-ноды недоступны из браузера — используем same-origin /api.
+          return '';
+        }
+      } catch {
+        // ignore invalid URL and keep as-is below
+      }
+    }
+    return normalized;
+  }
 
   if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
     return '';

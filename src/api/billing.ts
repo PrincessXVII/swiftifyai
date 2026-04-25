@@ -15,15 +15,28 @@ export async function createYookassaPlusPayment(returnUrl: string): Promise<{ co
     throw new Error('Войдите в аккаунт');
   }
 
-  const response = await fetch(`${apiBase}/api/billing/yookassa/create`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-      'X-Supabase-Access-Token': accessToken,
-    },
-    body: JSON.stringify({ returnUrl }),
-  });
+  const ctrl = new AbortController();
+  const timer = window.setTimeout(() => ctrl.abort(), 15_000);
+  let response: Response;
+  try {
+    response = await fetch(`${apiBase}/api/billing/yookassa/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        'X-Supabase-Access-Token': accessToken,
+      },
+      body: JSON.stringify({ returnUrl }),
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new Error('Сервер оплаты не отвечает. Проверьте VITE_API_BASE_URL и деплой Pages Functions.');
+    }
+    throw e;
+  } finally {
+    window.clearTimeout(timer);
+  }
 
   if (!response.ok) {
     let message = `HTTP ${response.status}`;
