@@ -4,8 +4,8 @@ interface Props {
 
 export function NewChatButton({ onClick }: Props) {
   return (
-    <button className="new-chat-button" onClick={onClick}>
-      + Новый чат
+    <button className="gradient-button" onClick={onClick}>
+      <span className="gradient-text">Новый чат</span>
     </button>
   );
 }

@@ -9,6 +9,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "figma:export": "env VITE_SUPABASE_URL= VITE_SUPABASE_PUBLISHABLE_DEFAULT_KEY= VITE_SUPABASE_ANON_KEY= npm run build && npx playwright install chromium && node scripts/figma-screenshots.mjs",
+    "figma:capture": "node scripts/figma-screenshots.mjs",
     "fonts:subset": "node scripts/subset-sf-webfonts.mjs"
   },
   "dependencies": {
@@ -41,6 +43,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "playwright": "^1.49.1",
     "subset-font": "^2.5.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.57.0",

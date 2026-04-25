@@ -11,7 +11,6 @@ import { PlusUpgradeBanner } from './PlusUpgradeBanner';
 import { EmptyState } from './EmptyState';
 import { MessageInput } from './MessageInput';
 import { MessageList } from './MessageList';
-import { TypingIndicator } from './TypingIndicator';
 import { Toast } from '../ui/Toast';
 
 interface Props {
@@ -46,10 +45,6 @@ export const ChatWindow = forwardRef<ChatWindowHandle, Props>(function ChatWindo
       hadStartedChatRef.current = false;
     }
   }, [isStarted]);
-
-  const showSkeletonInThread = messages.some(
-    (m) => m.role === 'assistant' && m.isStreaming && !m.content.trim(),
-  );
 
   useImperativeHandle(
     ref,
@@ -128,7 +123,6 @@ export const ChatWindow = forwardRef<ChatWindowHandle, Props>(function ChatWindo
             )}
           </div>
           <div className="chat-input-footer">
-            {isLoading && !showSkeletonInThread && <TypingIndicator />}
             <MessageInput
               ref={composerRef}
               isLoading={isLoading}

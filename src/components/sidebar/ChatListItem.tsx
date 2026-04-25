@@ -1,6 +1,4 @@
-import { Pin, Trash2 } from 'lucide-react';
 import type { Chat } from '../../types';
-import { formatDate } from '../../utils/formatDate';
 
 interface Props {
   chat: Chat;
@@ -20,12 +18,14 @@ export function ChatListItem({
   onDelete,
   onTogglePin,
 }: Props) {
-  const badge = (chat.title || 'S').trim().charAt(0).toUpperCase();
-  const pinned = !!chat.pinned;
+  void isActive;
+  void isLastInList;
+  void onDelete;
+  void onTogglePin;
 
   return (
     <div
-      className={`chat-list-item ${isActive ? 'active' : ''} ${isLastInList ? 'chat-list-item--last' : ''}`}
+      className="chat-list-item group"
       role="button"
       tabIndex={0}
       onClick={onOpen}
@@ -36,34 +36,32 @@ export function ChatListItem({
         }
       }}
     >
-      <span className="chat-avatar">{badge}</span>
-      <div className="chat-list-main">
-        <strong>{chat.title}</strong>
-        <small>{formatDate(chat.updatedAt)}</small>
-      </div>
+      <svg
+        y="0"
+        xmlns="http://www.w3.org/2000/svg"
+        x="0"
+        width="100"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="xMidYMid meet"
+        height="100"
+        className="w-8 h-8 absolute right-0 -rotate-45 stroke-pink-300 top-1.5 group-hover:rotate-0 duration-300"
+      >
+        <path
+          strokeWidth="4"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+          fill="none"
+          d="M60.7,53.6,50,64.3m0,0L39.3,53.6M50,64.3V35.7m0,46.4A32.1,32.1,0,1,1,82.1,50,32.1,32.1,0,0,1,50,82.1Z"
+          className="chat-list-item__arrow-stroke"
+        ></path>
+      </svg>
       <button
         type="button"
-        className={`chat-pin ${pinned ? 'chat-pin--pinned' : ''}`}
-        onClick={(event) => {
-          event.stopPropagation();
-          onTogglePin();
-        }}
-        aria-label={pinned ? 'Открепить чат' : 'Закрепить чат'}
-        aria-pressed={pinned}
+        className="chat-list-item__button"
+        onClick={onOpen}
       >
-        <Pin size={16} strokeWidth={pinned ? 2.2 : 1.6} />
+        {chat.title}
       </button>
-      <span
-        className="chat-delete"
-        role="button"
-        tabIndex={-1}
-        onClick={(event) => {
-          event.stopPropagation();
-          onDelete();
-        }}
-      >
-        <Trash2 size={16} />
-      </span>
     </div>
   );
 }
