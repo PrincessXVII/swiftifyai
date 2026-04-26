@@ -16,6 +16,28 @@ const yandexFolderId = process.env.YANDEX_FOLDER_ID;
 const yandexModelUri =
   process.env.YANDEX_MODEL_URI || (yandexFolderId ? `gpt://${yandexFolderId}/yandexgpt-lite` : '');
 
+const yandexModelUris = {
+  'yandex-fast':
+    process.env.YANDEX_MODEL_URI_FAST ||
+    process.env.YANDEX_MODEL_URI_LITE ||
+    (yandexFolderId ? `gpt://${yandexFolderId}/yandexgpt-lite` : ''),
+  'yandex-balanced':
+    process.env.YANDEX_MODEL_URI_BALANCED ||
+    process.env.YANDEX_MODEL_URI_DEFAULT ||
+    process.env.YANDEX_MODEL_URI ||
+    (yandexFolderId ? `gpt://${yandexFolderId}/yandexgpt-lite` : ''),
+  'yandex-pro':
+    process.env.YANDEX_MODEL_URI_PRO ||
+    process.env.YANDEX_MODEL_URI_ADVANCED ||
+    (yandexFolderId ? `gpt://${yandexFolderId}/yandexgpt/latest` : ''),
+};
+
+function resolveYandexModelUri(modelId) {
+  const fromMap = yandexModelUris[modelId];
+  if (typeof fromMap === 'string' && fromMap.trim()) return fromMap.trim();
+  return yandexModelUri;
+}
+
 /** Пробный тариф: суммарно не больше стольки символов пользовательского ввода за UTC-день. */
 const TRIAL_DAILY_CHARS = Number(process.env.TRIAL_DAILY_CHARS || 5000);
 /** Верхняя граница длины одного поля при отправке в Yandex (защита от перегрузки). */
@@ -36,8 +58,17 @@ function getSupabase() {
   return supabaseClient;
 }
 
-if (!yandexApiKey || !yandexModelUri) {
-  console.error('YANDEX_API_KEY and YANDEX_FOLDER_ID (or YANDEX_MODEL_URI) are required');
+const hasAnyYandexModelUri = Boolean(
+  yandexModelUri ||
+    yandexModelUris['yandex-fast'] ||
+    yandexModelUris['yandex-balanced'] ||
+    yandexModelUris['yandex-pro'],
+);
+
+if (!yandexApiKey || !hasAnyYandexModelUri) {
+  console.error(
+    'YANDEX_API_KEY and at least one Yandex model URI are required (YANDEX_FOLDER_ID or YANDEX_MODEL_URI_*).',
+  );
   process.exit(1);
 }
 
@@ -220,6 +251,7 @@ app.post('/api/chat', async (req, res) => {
   }
 
   const sanitizedMessages = sanitizeMessages(messages, kind);
+  const targetModelUri = resolveYandexModelUri(modelId);
 
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -233,7 +265,7 @@ app.post('/api/chat', async (req, res) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        modelUri: yandexModelUri,
+        modelUri: targetModelUri,
         completionOptions: {
           stream: false,
           temperature: 0.6,
