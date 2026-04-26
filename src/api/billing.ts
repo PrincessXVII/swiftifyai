@@ -22,7 +22,11 @@ export async function createYookassaPlusPayment(returnUrl: string): Promise<{ co
     throw new Error('Supabase не настроен');
   }
   const { data } = await supabase.auth.getSession();
-  const accessToken = data.session?.access_token;
+  let accessToken = data.session?.access_token ?? null;
+  if (!accessToken) {
+    const { data: refreshed, error } = await supabase.auth.refreshSession();
+    if (!error) accessToken = refreshed.session?.access_token ?? null;
+  }
   if (!accessToken) {
     throw new Error('Войдите в аккаунт');
   }

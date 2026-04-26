@@ -20,7 +20,12 @@ async function getSupabaseAccessToken(): Promise<string | null> {
   const supabase = getSupabaseClient();
   if (!supabase) return null;
   const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
+  if (data.session?.access_token) return data.session.access_token;
+
+  // Подхватываем случай, когда локально сессия есть, но access token уже истек.
+  const { data: refreshed, error } = await supabase.auth.refreshSession();
+  if (error || !refreshed.session?.access_token) return null;
+  return refreshed.session.access_token;
 }
 
 export function mapOpenAIError(error: unknown): string {
