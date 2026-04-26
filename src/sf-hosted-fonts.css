@@ -2,6 +2,8 @@
  * Подмноженные WOFF2 (npm run fonts:subset). Не подключать сырые OTF в веб — они по несколько MiB.
  */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @font-face {
   font-family: 'SF Compact Text Web';
   font-style: normal;
