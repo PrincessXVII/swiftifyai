@@ -3,6 +3,16 @@ import { v4 as uuid } from 'uuid';
 import { mapOpenAIError, streamChatCompletion } from '../api/openai';
 import { useChatStore } from '../store/chatStore';
 
+const ATTACHMENT_MARKER_OPEN = '[SWIFTIFY_ATTACHMENTS]';
+const ATTACHMENT_MARKER_CLOSE = '[/SWIFTIFY_ATTACHMENTS]';
+
+function stripAttachmentPayload(content: string): string {
+  const start = content.indexOf(ATTACHMENT_MARKER_OPEN);
+  const end = content.indexOf(ATTACHMENT_MARKER_CLOSE);
+  if (start < 0 || end < 0 || end <= start) return content;
+  return `${content.slice(0, start)}${content.slice(end + ATTACHMENT_MARKER_CLOSE.length)}`.trim();
+}
+
 function buildDailyLimitAssistantMessage(err: unknown): string | null {
   const e = err as { status?: number; code?: string; meta?: { remaining?: number; limit?: number } };
   if (e?.status !== 429) return null;
@@ -30,10 +40,12 @@ export function useChat() {
     if (!content.trim() || isLoading) return;
 
     const chat = activeChat ?? createChat(modelId);
+    const backendContent = content;
+    const displayContent = stripAttachmentPayload(content).trim();
     const userMessage = {
       id: uuid(),
       role: 'user' as const,
-      content,
+      content: displayContent || 'Сообщение с вложением',
       createdAt: Date.now(),
     };
     const assistantMessage = {
@@ -54,8 +66,9 @@ export function useChat() {
         .filter((message) => message.role === 'user' || message.role === 'assistant')
         .map((message) => ({
           role: message.role,
-          content: message.content,
+          content: stripAttachmentPayload(message.content),
         }));
+      history[history.length - 1] = { role: 'user', content: backendContent };
 
       let visibleText = '';
       let pendingText = '';
