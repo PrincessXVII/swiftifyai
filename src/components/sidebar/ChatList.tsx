@@ -7,9 +7,10 @@ import { ChatListItem } from './ChatListItem';
 interface Props {
   /** Слот сразу под прокручиваемым списком (например полоса звёзд до плашки профиля). */
   bottomSlot?: ReactNode;
+  onNavigateToChat?: () => void;
 }
 
-export function ChatList({ bottomSlot }: Props) {
+export function ChatList({ bottomSlot, onNavigateToChat }: Props) {
   const [query, setQuery] = useState('');
   const { chats, activeChatId, loadChat, deleteChat, togglePinChat } = useChatHistory();
 
@@ -43,7 +44,10 @@ export function ChatList({ bottomSlot }: Props) {
                 chat={chat}
                 isActive={activeChatId === chat.id}
                 isLastInList={index === visible.length - 1}
-                onOpen={() => loadChat(chat.id)}
+                onOpen={() => {
+                  onNavigateToChat?.();
+                  loadChat(chat.id);
+                }}
                 onDelete={() => deleteChat(chat.id)}
                 onTogglePin={() => togglePinChat(chat.id)}
               />

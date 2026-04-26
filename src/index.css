@@ -664,6 +664,7 @@ html.dark body {
   flex-direction: column;
   overflow: hidden;
   padding: 0 max(20px, min(6vw, 40px)) max(22px, calc(16px + env(safe-area-inset-bottom)));
+  animation: account-panel-pop 260ms var(--curve-smooth) both;
 }
 
 .account-panel__header {
@@ -2013,6 +2014,17 @@ html:not(.dark) .empty-state__logo {
   to {
     opacity: 1;
     transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes account-panel-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 

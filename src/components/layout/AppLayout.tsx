@@ -55,6 +55,7 @@ export function AppLayout() {
   const prevUserRef = useRef(user);
   const chatsCount = useChatStore((state) => state.chats.length);
   const prevChatsCount = useRef(chatsCount);
+  const leaveAccountMode = () => setAccountOpen(false);
 
   useEffect(() => {
     if (prevUserRef.current && !user) {
@@ -81,7 +82,7 @@ export function AppLayout() {
     <div className={`app-layout ${isStarted ? 'started' : 'welcome-only'}`}>
       {isStarted && (
         <div className="desktop-sidebar">
-          <Sidebar onOpenAccount={() => setAccountOpen(true)} />
+          <Sidebar onOpenAccount={() => setAccountOpen(true)} onNavigateToChat={leaveAccountMode} />
         </div>
       )}
 
@@ -115,6 +116,7 @@ export function AppLayout() {
                 setAccountOpen(true);
                 setIsSidebarOpen(false);
               }}
+              onNavigateToChat={leaveAccountMode}
             />
           </div>
         </>

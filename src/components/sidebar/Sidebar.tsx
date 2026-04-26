@@ -9,6 +9,7 @@ import { NewChatButton } from './NewChatButton';
 interface Props {
   onClose?: () => void;
   onOpenAccount?: () => void;
+  onNavigateToChat?: () => void;
 }
 
 const STAR4_A = 'polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%)';
@@ -115,7 +116,7 @@ const REPEL_RADIUS_PX = 120;
 const MAX_PUSH_PX = 28;
 const SCATTER_CAP = 112;
 
-export function Sidebar({ onClose, onOpenAccount }: Props) {
+export function Sidebar({ onClose, onOpenAccount, onNavigateToChat }: Props) {
   const { user, isConfigured } = useAuth();
   const primaryLabel = user ? getProfilePrimaryLabel(user) : '';
   const subBadge = user ? getSubscriptionBadge(user) : { isPlus: false, label: '' };
@@ -241,6 +242,7 @@ export function Sidebar({ onClose, onOpenAccount }: Props) {
         <div className="sidebar-top">
           <NewChatButton
             onClick={() => {
+              onNavigateToChat?.();
               createChat(selectedModel);
               onClose?.();
             }}
@@ -248,6 +250,7 @@ export function Sidebar({ onClose, onOpenAccount }: Props) {
         </div>
 
         <ChatList
+          onNavigateToChat={onNavigateToChat}
           bottomSlot={
             <div className="sidebar-stars" aria-hidden="true">
               <div className="icefield" ref={icefieldRef}>
