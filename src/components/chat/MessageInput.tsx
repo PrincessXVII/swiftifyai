@@ -471,7 +471,7 @@ const StyledWrapper = styled.div`
   }
 
   .attachments-wrap {
-    margin-top: 8px;
+    margin-bottom: 8px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -526,12 +526,18 @@ interface Props {
 type Attachment = {
   id: string;
   name: string;
+  kind: 'text' | 'image' | 'unsupported';
+  mime?: string;
+  base64?: string;
   text: string;
   note?: string;
+  unsupported?: boolean;
 };
 
 const MAX_FILE_SIZE = 512 * 1024; // 512 KB
 const MAX_ATTACHMENTS = 4;
+const ATTACHMENT_MARKER_OPEN = '[SWIFTIFY_ATTACHMENTS]';
+const ATTACHMENT_MARKER_CLOSE = '[/SWIFTIFY_ATTACHMENTS]';
 
 function ext(name: string): string {
   const i = name.lastIndexOf('.');
@@ -545,31 +551,81 @@ function isTextLike(file: File): boolean {
 }
 
 async function readFileText(file: File): Promise<Attachment> {
+  if (file.type.startsWith('image/')) {
+    if (file.size > 2 * 1024 * 1024) {
+      return {
+        id: crypto.randomUUID(),
+        name: file.name,
+        kind: 'unsupported',
+        text: '',
+        note: 'Изображение слишком большое (макс. 2 MB)',
+        unsupported: true,
+      };
+    }
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result || ''));
+        reader.onerror = () => reject(new Error('read failed'));
+        reader.readAsDataURL(file);
+      });
+      const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1] : '';
+      if (!base64) throw new Error('empty');
+      return {
+        id: crypto.randomUUID(),
+        name: file.name,
+        kind: 'image',
+        mime: file.type || 'image/jpeg',
+        base64,
+        text: '',
+        note: 'Будет распознано перед ответом',
+      };
+    } catch {
+      return {
+        id: crypto.randomUUID(),
+        name: file.name,
+        kind: 'unsupported',
+        text: '',
+        note: 'Не удалось прочитать изображение',
+        unsupported: true,
+      };
+    }
+  }
+
   if (file.size > MAX_FILE_SIZE) {
     return {
       id: crypto.randomUUID(),
       name: file.name,
+      kind: 'unsupported',
       text: '',
       note: 'Слишком большой файл (макс. 512 KB)',
+      unsupported: true,
     };
   }
   if (!isTextLike(file)) {
+    const imageNote = file.type.startsWith('image/')
+      ? 'Изображения пока не обрабатываются'
+      : 'Формат пока не поддерживается';
     return {
       id: crypto.randomUUID(),
       name: file.name,
+      kind: 'unsupported',
       text: '',
-      note: 'Формат не поддерживает чтение как текст',
+      note: imageNote,
+      unsupported: true,
     };
   }
   try {
     const text = (await file.text()).slice(0, 120_000);
-    return { id: crypto.randomUUID(), name: file.name, text };
+    return { id: crypto.randomUUID(), name: file.name, kind: 'text', text };
   } catch {
     return {
       id: crypto.randomUUID(),
       name: file.name,
+      kind: 'unsupported',
       text: '',
       note: 'Не удалось прочитать файл',
+      unsupported: true,
     };
   }
 }
@@ -580,10 +636,11 @@ export const MessageInput = forwardRef<HTMLInputElement, Props>(function Message
 ) {
   const [value, setValue] = useState(initialValue);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachmentWarning, setAttachmentWarning] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const hasUsefulAttachments = useMemo(
-    () => attachments.some((a) => a.text.trim().length > 0 || a.note),
+    () => attachments.some((a) => a.kind === 'text' || a.kind === 'image'),
     [attachments],
   );
 
@@ -593,19 +650,34 @@ export const MessageInput = forwardRef<HTMLInputElement, Props>(function Message
 
   const handleSend = async () => {
     const payload = value.trim().slice(0, MAX_MESSAGE_INPUT_CHARS);
-    if (!payload && !hasUsefulAttachments) return;
+    if (!payload && !hasUsefulAttachments) {
+      if (attachments.length > 0) setAttachmentWarning('Не удалось подготовить вложения к отправке.');
+      return;
+    }
 
+    setAttachmentWarning(null);
+
+    const textAttachments = attachments.filter((a) => a.text.trim().length > 0);
+    const imageAttachments = attachments
+      .filter((a) => a.kind === 'image' && a.base64 && a.mime)
+      .map((a) => ({
+        name: a.name,
+        mime: a.mime!,
+        base64: a.base64!,
+      }));
     const attachmentBlock =
-      attachments.length === 0
+      textAttachments.length === 0
         ? ''
-        : `\n\n[Вложения]\n${attachments
-            .map((a) => {
-              if (a.note) return `Файл: ${a.name}\nПримечание: ${a.note}`;
-              return `Файл: ${a.name}\nСодержимое:\n\`\`\`\n${a.text}\n\`\`\``;
-            })
+        : `\n\n[Вложения]\n${textAttachments
+            .map((a) => `Файл: ${a.name}\nСодержимое:\n\`\`\`\n${a.text}\n\`\`\``)
             .join('\n\n')}`;
 
-    const finalPayload = `${payload}${attachmentBlock}`.trim();
+    const imagePayload =
+      imageAttachments.length === 0
+        ? ''
+        : `\n\n${ATTACHMENT_MARKER_OPEN}${JSON.stringify({ images: imageAttachments })}${ATTACHMENT_MARKER_CLOSE}`;
+
+    const finalPayload = `${payload}${attachmentBlock}${imagePayload}`.trim();
     setValue('');
     setAttachments([]);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -621,11 +693,40 @@ export const MessageInput = forwardRef<HTMLInputElement, Props>(function Message
     const picked = Array.from(files).slice(0, left);
     const parsed = await Promise.all(picked.map((f) => readFileText(f)));
     setAttachments((prev) => [...prev, ...parsed]);
+    setAttachmentWarning(null);
+    if (forwardedRef && typeof forwardedRef === 'object' && forwardedRef.current) {
+      forwardedRef.current.focus();
+    }
   };
 
   return (
     <StyledWrapper>
       <div>
+        {attachments.length > 0 ? (
+          <div className="attachments-wrap">
+            {attachments.map((a) => (
+              <div className="attachment-chip" key={a.id} title={a.note || a.name}>
+                <span className="attachment-chip__name">
+                  {a.name}
+                  {a.note ? ` — ${a.note}` : ''}
+                </span>
+                <button
+                  type="button"
+                  className="attachment-chip__remove"
+                  aria-label={`Удалить ${a.name}`}
+                  onClick={() => setAttachments((prev) => prev.filter((x) => x.id !== a.id))}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
+        {attachmentWarning ? (
+          <div className="message-input-counter" role="alert">
+            {attachmentWarning}
+          </div>
+        ) : null}
         <div id="poda">
           <div className="glow" />
           <div className="darkBorderBg" />
@@ -668,8 +769,14 @@ export const MessageInput = forwardRef<HTMLInputElement, Props>(function Message
               title="Прикрепить файлы"
               disabled={isLoading || attachments.length >= MAX_ATTACHMENTS}
               onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  void handleSend();
+                }
+              }}
             >
-              <Paperclip size={16} strokeWidth={1.8} />
+              <Paperclip size={24} strokeWidth={1.8} />
             </button>
             <div id="input-mask" />
             <div id="pink-mask" />
@@ -725,23 +832,6 @@ export const MessageInput = forwardRef<HTMLInputElement, Props>(function Message
             </div>
           </div>
         </div>
-        {attachments.length > 0 ? (
-          <div className="attachments-wrap">
-            {attachments.map((a) => (
-              <div className="attachment-chip" key={a.id} title={a.note || a.name}>
-                <span className="attachment-chip__name">{a.name}</span>
-                <button
-                  type="button"
-                  className="attachment-chip__remove"
-                  aria-label={`Удалить ${a.name}`}
-                  onClick={() => setAttachments((prev) => prev.filter((x) => x.id !== a.id))}
-                >
-                  <X size={12} />
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : null}
       </div>
     </StyledWrapper>
   );

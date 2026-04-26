@@ -15,6 +15,8 @@ const yandexApiKey = process.env.YANDEX_API_KEY;
 const yandexFolderId = process.env.YANDEX_FOLDER_ID;
 const yandexModelUri =
   process.env.YANDEX_MODEL_URI || (yandexFolderId ? `gpt://${yandexFolderId}/yandexgpt-lite` : '');
+const ATTACHMENT_MARKER_OPEN = '[SWIFTIFY_ATTACHMENTS]';
+const ATTACHMENT_MARKER_CLOSE = '[/SWIFTIFY_ATTACHMENTS]';
 
 const yandexModelUris = {
   'yandex-auto': '',
@@ -83,6 +85,105 @@ function resolveRequestedModelId(modelId, messages, kind) {
   if (!requested || requested === 'yandex-auto') return pickAutoModelId(messages, kind);
   if (requested in yandexModelUris) return requested;
   return pickAutoModelId(messages, kind);
+}
+
+function parseAttachmentsFromContent(content) {
+  const raw = String(content || '');
+  const start = raw.indexOf(ATTACHMENT_MARKER_OPEN);
+  const end = raw.indexOf(ATTACHMENT_MARKER_CLOSE);
+  if (start < 0 || end < 0 || end <= start) return { clean: raw, images: [] };
+
+  const jsonPart = raw.slice(start + ATTACHMENT_MARKER_OPEN.length, end).trim();
+  let images = [];
+  try {
+    const parsed = JSON.parse(jsonPart);
+    if (Array.isArray(parsed?.images)) {
+      images = parsed.images
+        .filter((i) => typeof i?.base64 === 'string' && typeof i?.name === 'string')
+        .slice(0, 3);
+    }
+  } catch {
+    /* ignore invalid attachment payload */
+  }
+
+  const clean = `${raw.slice(0, start)}${raw.slice(end + ATTACHMENT_MARKER_CLOSE.length)}`.trim();
+  return { clean, images };
+}
+
+async function recognizeImageText(base64Content) {
+  if (!yandexFolderId || !yandexApiKey) return '';
+  const response = await fetch('https://vision.api.cloud.yandex.net/vision/v1/batchAnalyze', {
+    method: 'POST',
+    headers: {
+      Authorization: `Api-Key ${yandexApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      folderId: yandexFolderId,
+      analyze_specs: [
+        {
+          content: base64Content,
+          features: [{ type: 'TEXT_DETECTION', text_detection_config: { language_codes: ['ru', 'en'] } }],
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    return '';
+  }
+
+  const payload = await response.json();
+  const texts = [];
+  const results = payload?.results ?? [];
+  for (const result of results) {
+    const inner = result?.results ?? [];
+    for (const item of inner) {
+      const pages = item?.textDetection?.pages ?? item?.text_detection?.pages ?? [];
+      for (const page of pages) {
+        const blocks = page?.blocks ?? [];
+        for (const block of blocks) {
+          const lines = block?.lines ?? [];
+          for (const line of lines) {
+            const words = line?.words ?? [];
+            const lineText = words.map((w) => w?.text).filter(Boolean).join(' ').trim();
+            if (lineText) texts.push(lineText);
+          }
+        }
+      }
+    }
+  }
+  return texts.join('\n').trim();
+}
+
+async function injectImageOcrIntoMessages(messages) {
+  if (!Array.isArray(messages)) return [];
+  const copy = messages.map((m) => ({ ...m, content: String(m?.content || '') }));
+  const lastIdx = copy.map((m) => m.role).lastIndexOf('user');
+  if (lastIdx < 0) return copy;
+
+  const { clean, images } = parseAttachmentsFromContent(copy[lastIdx].content);
+  copy[lastIdx].content = clean;
+  if (images.length === 0) return copy;
+
+  const ocrParts = [];
+  for (const img of images) {
+    try {
+      const text = await recognizeImageText(img.base64);
+      if (text) {
+        ocrParts.push(`[Изображение: ${img.name}]\nРаспознанный текст:\n${text}`);
+      } else {
+        ocrParts.push(`[Изображение: ${img.name}]\nТекст не распознан.`);
+      }
+    } catch {
+      ocrParts.push(`[Изображение: ${img.name}]\nОшибка распознавания.`);
+    }
+  }
+
+  if (ocrParts.length > 0) {
+    copy[lastIdx].content = `${copy[lastIdx].content}\n\n${ocrParts.join('\n\n')}`.trim();
+  }
+  return copy;
 }
 
 function completionOptionsForModel(modelId) {
@@ -227,7 +328,7 @@ function charCostForRequest(messages) {
   if (!Array.isArray(messages) || messages.length === 0) return 0;
   const last = messages[messages.length - 1];
   if (last?.role === 'user') {
-    return String(last.content ?? '').length;
+    return parseAttachmentsFromContent(last.content ?? '').clean.length;
   }
   return 0;
 }
@@ -283,7 +384,8 @@ app.post('/api/chat', async (req, res) => {
   }
 
   const isPlus = userHasPlusAccess(user);
-  const charCost = charCostForRequest(messages);
+  const normalizedMessages = await injectImageOcrIntoMessages(messages);
+  const charCost = charCostForRequest(normalizedMessages);
 
   if (!isPlus) {
     if (charCost > TRIAL_DAILY_CHARS) {
@@ -307,7 +409,7 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  const sanitizedMessages = sanitizeMessages(messages, kind);
+  const sanitizedMessages = sanitizeMessages(normalizedMessages, kind);
   const selectedModelId = resolveRequestedModelId(modelId, messages, kind);
   const targetModelUri = resolveYandexModelUri(selectedModelId);
   const completionOptions = completionOptionsForModel(selectedModelId);
