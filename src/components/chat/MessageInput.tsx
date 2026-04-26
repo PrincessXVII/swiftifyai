@@ -43,7 +43,8 @@ const StyledWrapper = styled.div`
     height: 56px;
     border-radius: 10px;
     color: white;
-    padding-inline: 59px;
+    padding-right: 59px;
+    padding-left: 92px;
     font-size: 18px;
   }
   #poda {
@@ -437,7 +438,7 @@ const StyledWrapper = styled.div`
   }
   #search-icon {
     position: absolute;
-    left: 52px;
+    left: 50px;
     top: 15px;
   }
 
