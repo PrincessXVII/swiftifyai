@@ -4,7 +4,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { getProfilePrimaryLabel, getSubscriptionBadge } from '../../lib/userProfile';
 import { useChatStore } from '../../store/chatStore';
 import { ChatList } from './ChatList';
-import { ModelSelector } from './ModelSelector';
 import { NewChatButton } from './NewChatButton';
 
 interface Props {
@@ -248,7 +247,6 @@ export function Sidebar({ onClose, onOpenAccount, onNavigateToChat }: Props) {
               onClose?.();
             }}
           />
-          <ModelSelector />
         </div>
 
         <ChatList

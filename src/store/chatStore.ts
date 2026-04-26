@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { v4 as uuid } from 'uuid';
-import { AI_MODELS } from '../constants/models';
+import { AUTO_MODEL_ID } from '../constants/models';
 import type { AppSettings, Chat, Message, Theme } from '../types';
 import { generateTitle } from '../utils/generateTitle';
 import { sortChatsForDisplay } from '../utils/sortChats';
@@ -51,7 +51,7 @@ function defaultTheme(): Theme {
 }
 
 function defaultSettings(): AppSettings {
-  return { theme: defaultTheme(), selectedModelId: AI_MODELS[0].id };
+  return { theme: defaultTheme(), selectedModelId: AUTO_MODEL_ID };
 }
 
 /** `undefined` — регидрация ещё не выполнялась, в localStorage не пишем. */
@@ -99,7 +99,11 @@ function loadSettings(userId: string | null): AppSettings {
     localStorage.removeItem(LEGACY_THEME_KEY);
     localStorage.setItem(sk, JSON.stringify(settings));
   }
-  return settings;
+  const normalized = { ...settings, selectedModelId: AUTO_MODEL_ID };
+  if (normalized.selectedModelId !== settings.selectedModelId) {
+    localStorage.setItem(sk, JSON.stringify(normalized));
+  }
+  return normalized;
 }
 
 function loadChats(userId: string | null): Chat[] {
@@ -182,9 +186,9 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       return { chats };
     }),
   setActiveChatId: (chatId) => set({ activeChatId: chatId }),
-  setSelectedModelId: (modelId) =>
+  setSelectedModelId: (_modelId) =>
     set((state) => {
-      const settings = { ...state.settings, selectedModelId: modelId };
+      const settings = { ...state.settings, selectedModelId: AUTO_MODEL_ID };
       persistSettings(settings);
       return { settings };
     }),
