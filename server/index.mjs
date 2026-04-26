@@ -90,8 +90,11 @@ function resolveRequestedModelId(modelId, messages, kind) {
 function parseAttachmentsFromContent(content) {
   const raw = String(content || '');
   const start = raw.indexOf(ATTACHMENT_MARKER_OPEN);
+  if (start < 0) return { clean: raw, images: [] };
   const end = raw.indexOf(ATTACHMENT_MARKER_CLOSE);
-  if (start < 0 || end < 0 || end <= start) return { clean: raw, images: [] };
+  if (end < 0 || end <= start) {
+    return { clean: raw.slice(0, start).trim(), images: [] };
+  }
 
   const jsonPart = raw.slice(start + ATTACHMENT_MARKER_OPEN.length, end).trim();
   let images = [];

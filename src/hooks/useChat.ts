@@ -8,8 +8,11 @@ const ATTACHMENT_MARKER_CLOSE = '[/SWIFTIFY_ATTACHMENTS]';
 
 function stripAttachmentPayload(content: string): string {
   const start = content.indexOf(ATTACHMENT_MARKER_OPEN);
+  if (start < 0) return content;
   const end = content.indexOf(ATTACHMENT_MARKER_CLOSE);
-  if (start < 0 || end < 0 || end <= start) return content;
+  if (end < 0 || end <= start) {
+    return content.slice(0, start).trim();
+  }
   return `${content.slice(0, start)}${content.slice(end + ATTACHMENT_MARKER_CLOSE.length)}`.trim();
 }
 
