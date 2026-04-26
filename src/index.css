@@ -664,7 +664,8 @@ html.dark body {
   flex-direction: column;
   overflow: hidden;
   padding: 0 max(20px, min(6vw, 40px)) max(22px, calc(16px + env(safe-area-inset-bottom)));
-  animation: account-panel-pop 260ms var(--curve-smooth) both;
+  animation: account-panel-pop 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
 }
 
 .account-panel__header {
@@ -710,6 +711,8 @@ html.dark body {
   padding-top: 4px;
   width: 100%;
   box-sizing: border-box;
+  opacity: 0;
+  animation: account-panel-content-pop 360ms ease-out 90ms forwards;
 }
 
 .account-panel__sheet {
@@ -2020,11 +2023,22 @@ html:not(.dark) .empty-state__logo {
 @keyframes account-panel-pop {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.985);
+    transform: translateY(18px) scale(0.97);
   }
   to {
     opacity: 1;
     transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes account-panel-content-pop {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
