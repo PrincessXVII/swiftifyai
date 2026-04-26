@@ -1519,6 +1519,8 @@ html.dark body {
   margin-left: 8px;
   transform: scale(0.62);
   transform-origin: left center;
+  opacity: 0;
+  animation: spinner-soft-enter 340ms ease-out forwards;
 }
 
 .assistant-skeleton__top {
@@ -1613,16 +1615,24 @@ html.dark body {
   width: 3em;
   height: 3em;
   cursor: not-allowed;
+  opacity: 0;
   position: relative;
   display: block;
   border-radius: 50%;
-  border: 2px solid #444;
-  box-shadow: -10px -10px 10px #6359f8, 0px -10px 10px 0px #9c32e2, 10px -10px 10px #f36896, 10px 0 10px #ff0b0b, 10px 10px 10px 0px#ff5500, 0 10px 10px 0px #ff9500, -10px 10px 10px 0px #ffb700;
-  animation: rot55 0.7s linear infinite;
+  border: 2px solid rgba(118, 84, 196, 0.75);
+  box-shadow:
+    -10px -10px 12px rgba(120, 95, 255, 0.9),
+    0 -10px 12px rgba(156, 66, 238, 0.92),
+    10px -10px 12px rgba(242, 106, 141, 0.95),
+    10px 0 12px rgba(219, 86, 224, 0.9),
+    10px 10px 12px rgba(164, 84, 244, 0.9),
+    0 10px 12px rgba(246, 106, 170, 0.9),
+    -10px 10px 12px rgba(146, 96, 246, 0.9);
+  animation: spinner-soft-enter 340ms ease-out forwards, rot55 0.7s linear infinite;
 }
 
 .spinnerin {
-  border: 2px solid #444;
+  border: 2px solid rgba(126, 90, 210, 0.78);
   width: 1.5em;
   height: 1.5em;
   border-radius: 50%;
@@ -1635,6 +1645,17 @@ html.dark body {
 @keyframes rot55 {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes spinner-soft-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.54) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(0.62) translateY(0);
   }
 }
 
