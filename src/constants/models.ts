@@ -2,6 +2,13 @@ import type { AIModel } from '../types';
 
 export const AI_MODELS: AIModel[] = [
   {
+    id: 'yandex-auto',
+    name: 'Yandex Auto',
+    provider: 'internal',
+    available: true,
+    description: 'Автоподбор модели под ваш запрос',
+  },
+  {
     id: 'yandex-balanced',
     name: 'Yandex Balanced',
     provider: 'internal',

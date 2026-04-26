@@ -17,6 +17,7 @@ const yandexModelUri =
   process.env.YANDEX_MODEL_URI || (yandexFolderId ? `gpt://${yandexFolderId}/yandexgpt-lite` : '');
 
 const yandexModelUris = {
+  'yandex-auto': '',
   'yandex-fast':
     process.env.YANDEX_MODEL_URI_FAST ||
     process.env.YANDEX_MODEL_URI_LITE ||
@@ -36,6 +37,42 @@ function resolveYandexModelUri(modelId) {
   const fromMap = yandexModelUris[modelId];
   if (typeof fromMap === 'string' && fromMap.trim()) return fromMap.trim();
   return yandexModelUri;
+}
+
+function pickAutoModelId(messages, kind) {
+  if (kind === 'summary') return 'yandex-pro';
+  if (!Array.isArray(messages) || messages.length === 0) return 'yandex-balanced';
+
+  const lastUser = [...messages].reverse().find((m) => m?.role === 'user');
+  const text = String(lastUser?.content || '');
+  const lower = text.toLowerCase();
+  const len = text.length;
+
+  const hasCodeSignals =
+    /```|stack|trace|exception|error|bug|refactor|typescript|javascript|python|sql|regex|api|endpoint|json|\bclass\b|\bfunction\b/i.test(
+      text,
+    ) ||
+    /код|ошибк|баг|рефактор|скрипт|запрос|эндпоинт|регекс|стек|трейс|компил|типизац|ts|js/.test(lower);
+
+  const hasDeepAnalysisSignals =
+    /сравни|проанализ|архитект|подроб|деталь|стратег|пошаг|объясни почему|trade[- ]?off|design|analysis|plan/i.test(
+      lower,
+    ) || len > 900;
+
+  const hasQuickTaskSignals =
+    /кратк|коротк|в 1-2|одной строк|быстро|quick|tl;dr|сжато|списком до|до 3 пункт/i.test(lower) ||
+    len < 140;
+
+  if (hasCodeSignals || hasDeepAnalysisSignals) return 'yandex-pro';
+  if (hasQuickTaskSignals) return 'yandex-fast';
+  return 'yandex-balanced';
+}
+
+function resolveRequestedModelId(modelId, messages, kind) {
+  const requested = typeof modelId === 'string' ? modelId.trim() : '';
+  if (!requested || requested === 'yandex-auto') return pickAutoModelId(messages, kind);
+  if (requested in yandexModelUris) return requested;
+  return pickAutoModelId(messages, kind);
 }
 
 /** Пробный тариф: суммарно не больше стольки символов пользовательского ввода за UTC-день. */
@@ -251,11 +288,13 @@ app.post('/api/chat', async (req, res) => {
   }
 
   const sanitizedMessages = sanitizeMessages(messages, kind);
-  const targetModelUri = resolveYandexModelUri(modelId);
+  const selectedModelId = resolveRequestedModelId(modelId, messages, kind);
+  const targetModelUri = resolveYandexModelUri(selectedModelId);
 
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Selected-Model-Id', selectedModelId);
 
   try {
     const yandexResponse = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
