@@ -1,4 +1,5 @@
-import { forwardRef, useEffect, useState } from 'react';
+import { Paperclip, X } from 'lucide-react';
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { MAX_MESSAGE_INPUT_CHARS } from '../../constants/limits';
 
@@ -436,8 +437,82 @@ const StyledWrapper = styled.div`
   }
   #search-icon {
     position: absolute;
-    left: 20px;
+    left: 52px;
     top: 15px;
+  }
+
+  .attach-icon-btn {
+    position: absolute;
+    left: 14px;
+    top: 13px;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #cbc2dc;
+    cursor: pointer;
+    transition: background 160ms ease, color 160ms ease, transform 140ms ease;
+  }
+
+  .attach-icon-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    color: #f2e9ff;
+    transform: translateY(-1px);
+  }
+
+  .attach-icon-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .attachments-wrap {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .attachment-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(204, 150, 233, 0.35);
+    background: rgba(20, 15, 34, 0.78);
+    color: #ece4ff;
+    font-size: 12px;
+    max-width: min(320px, 90vw);
+  }
+
+  .attachment-chip__name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .attachment-chip__remove {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border-radius: 50%;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.86;
+  }
+
+  .attachment-chip__remove:hover {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.1);
   }
 `;
 
@@ -447,11 +522,69 @@ interface Props {
   initialValue?: string;
 }
 
+type Attachment = {
+  id: string;
+  name: string;
+  text: string;
+  note?: string;
+};
+
+const MAX_FILE_SIZE = 512 * 1024; // 512 KB
+const MAX_ATTACHMENTS = 4;
+
+function ext(name: string): string {
+  const i = name.lastIndexOf('.');
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : '';
+}
+
+function isTextLike(file: File): boolean {
+  if (file.type.startsWith('text/')) return true;
+  const e = ext(file.name);
+  return ['md', 'txt', 'json', 'csv', 'ts', 'tsx', 'js', 'jsx', 'py', 'sql', 'xml', 'yaml', 'yml', 'html', 'css'].includes(e);
+}
+
+async function readFileText(file: File): Promise<Attachment> {
+  if (file.size > MAX_FILE_SIZE) {
+    return {
+      id: crypto.randomUUID(),
+      name: file.name,
+      text: '',
+      note: 'Слишком большой файл (макс. 512 KB)',
+    };
+  }
+  if (!isTextLike(file)) {
+    return {
+      id: crypto.randomUUID(),
+      name: file.name,
+      text: '',
+      note: 'Формат не поддерживает чтение как текст',
+    };
+  }
+  try {
+    const text = (await file.text()).slice(0, 120_000);
+    return { id: crypto.randomUUID(), name: file.name, text };
+  } catch {
+    return {
+      id: crypto.randomUUID(),
+      name: file.name,
+      text: '',
+      note: 'Не удалось прочитать файл',
+    };
+  }
+}
+
 export const MessageInput = forwardRef<HTMLInputElement, Props>(function MessageInput(
   { isLoading, onSubmit, initialValue = '' },
   forwardedRef,
 ) {
   const [value, setValue] = useState(initialValue);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const hasUsefulAttachments = useMemo(
+    () => attachments.some((a) => a.text.trim().length > 0 || a.note),
+    [attachments],
+  );
 
   useEffect(() => {
     setValue(initialValue);
@@ -459,12 +592,34 @@ export const MessageInput = forwardRef<HTMLInputElement, Props>(function Message
 
   const handleSend = async () => {
     const payload = value.trim().slice(0, MAX_MESSAGE_INPUT_CHARS);
-    if (!payload) return;
+    if (!payload && !hasUsefulAttachments) return;
+
+    const attachmentBlock =
+      attachments.length === 0
+        ? ''
+        : `\n\n[Вложения]\n${attachments
+            .map((a) => {
+              if (a.note) return `Файл: ${a.name}\nПримечание: ${a.note}`;
+              return `Файл: ${a.name}\nСодержимое:\n\`\`\`\n${a.text}\n\`\`\``;
+            })
+            .join('\n\n')}`;
+
+    const finalPayload = `${payload}${attachmentBlock}`.trim();
     setValue('');
+    setAttachments([]);
+    if (fileInputRef.current) fileInputRef.current.value = '';
     if (forwardedRef && typeof forwardedRef === 'object' && forwardedRef.current) {
       forwardedRef.current.focus();
     }
-    await onSubmit(payload);
+    await onSubmit(finalPayload);
+  };
+
+  const handlePickFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const left = Math.max(0, MAX_ATTACHMENTS - attachments.length);
+    const picked = Array.from(files).slice(0, left);
+    const parsed = await Promise.all(picked.map((f) => readFileText(f)));
+    setAttachments((prev) => [...prev, ...parsed]);
   };
 
   return (
@@ -496,6 +651,25 @@ export const MessageInput = forwardRef<HTMLInputElement, Props>(function Message
                 }
               }}
             />
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              hidden
+              onChange={(e) => {
+                void handlePickFiles(e.target.files);
+              }}
+            />
+            <button
+              type="button"
+              className="attach-icon-btn"
+              aria-label="Прикрепить файлы"
+              title="Прикрепить файлы"
+              disabled={isLoading || attachments.length >= MAX_ATTACHMENTS}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <Paperclip size={16} strokeWidth={1.8} />
+            </button>
             <div id="input-mask" />
             <div id="pink-mask" />
             <div className="filterBorder" />
@@ -550,6 +724,23 @@ export const MessageInput = forwardRef<HTMLInputElement, Props>(function Message
             </div>
           </div>
         </div>
+        {attachments.length > 0 ? (
+          <div className="attachments-wrap">
+            {attachments.map((a) => (
+              <div className="attachment-chip" key={a.id} title={a.note || a.name}>
+                <span className="attachment-chip__name">{a.name}</span>
+                <button
+                  type="button"
+                  className="attachment-chip__remove"
+                  aria-label={`Удалить ${a.name}`}
+                  onClick={() => setAttachments((prev) => prev.filter((x) => x.id !== a.id))}
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
     </StyledWrapper>
   );

@@ -63,7 +63,17 @@ function pickAutoModelId(messages, kind) {
     /кратк|коротк|в 1-2|одной строк|быстро|quick|tl;dr|сжато|списком до|до 3 пункт/i.test(lower) ||
     len < 140;
 
+  const hasCreativeSignals =
+    /придумай|креатив|слоган|назван|иде[яй]|пост для|реклам|сценарий|tone of voice|brainstorm/i.test(
+      lower,
+    );
+
+  const hasRewriteOrTranslateSignals =
+    /перевед|rewrite|перепиш|улучши текст|исправь граммат|сделай вежлив/i.test(lower);
+
   if (hasCodeSignals || hasDeepAnalysisSignals) return 'yandex-pro';
+  if (hasCreativeSignals) return 'yandex-pro';
+  if (hasRewriteOrTranslateSignals && len < 700) return 'yandex-fast';
   if (hasQuickTaskSignals) return 'yandex-fast';
   return 'yandex-balanced';
 }
@@ -73,6 +83,16 @@ function resolveRequestedModelId(modelId, messages, kind) {
   if (!requested || requested === 'yandex-auto') return pickAutoModelId(messages, kind);
   if (requested in yandexModelUris) return requested;
   return pickAutoModelId(messages, kind);
+}
+
+function completionOptionsForModel(modelId) {
+  if (modelId === 'yandex-fast') {
+    return { stream: false, temperature: 0.35, maxTokens: '1200' };
+  }
+  if (modelId === 'yandex-pro') {
+    return { stream: false, temperature: 0.5, maxTokens: '2600' };
+  }
+  return { stream: false, temperature: 0.6, maxTokens: '2000' };
 }
 
 /** Пробный тариф: суммарно не больше стольки символов пользовательского ввода за UTC-день. */
@@ -290,6 +310,7 @@ app.post('/api/chat', async (req, res) => {
   const sanitizedMessages = sanitizeMessages(messages, kind);
   const selectedModelId = resolveRequestedModelId(modelId, messages, kind);
   const targetModelUri = resolveYandexModelUri(selectedModelId);
+  const completionOptions = completionOptionsForModel(selectedModelId);
 
   res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
@@ -305,11 +326,7 @@ app.post('/api/chat', async (req, res) => {
       },
       body: JSON.stringify({
         modelUri: targetModelUri,
-        completionOptions: {
-          stream: false,
-          temperature: 0.6,
-          maxTokens: '2000',
-        },
+        completionOptions,
         messages: sanitizedMessages.map((m) => ({ role: m.role, text: m.content })),
       }),
     });
