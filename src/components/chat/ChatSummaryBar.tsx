@@ -12,6 +12,7 @@ interface Props {
 export function ChatSummaryBar({ messages, isLoading }: Props) {
   const modelId = useChatStore((state) => state.settings.selectedModelId);
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,7 @@ export function ChatSummaryBar({ messages, isLoading }: Props) {
 
   const runSummary = useCallback(async () => {
     if (!canSummarize || busy) return;
+    setClosing(false);
     setOpen(true);
     setText('');
     setError(null);
@@ -38,11 +40,22 @@ export function ChatSummaryBar({ messages, isLoading }: Props) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') {
+        setClosing(true);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [open]);
+
+  useEffect(() => {
+    if (!closing) return;
+    const timer = window.setTimeout(() => {
+      setOpen(false);
+      setClosing(false);
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [closing]);
 
   return (
     <>
@@ -57,12 +70,12 @@ export function ChatSummaryBar({ messages, isLoading }: Props) {
 
       {open ? (
         <div
-          className="summary-modal-overlay"
+          className={`summary-modal-overlay ${closing ? 'is-closing' : ''}`}
           role="presentation"
-          onClick={() => setOpen(false)}
+          onClick={() => setClosing(true)}
         >
           <div
-            className="summary-modal"
+            className={`summary-modal ${closing ? 'is-closing' : ''}`}
             role="dialog"
             aria-modal="true"
             aria-labelledby="summary-modal-title"
@@ -70,7 +83,7 @@ export function ChatSummaryBar({ messages, isLoading }: Props) {
           >
             <div className="summary-modal__header">
               <h2 id="summary-modal-title">Краткое резюме</h2>
-              <button type="button" className="summary-modal__close" onClick={() => setOpen(false)}>
+              <button type="button" className="summary-modal__close" onClick={() => setClosing(true)}>
                 Закрыть
               </button>
             </div>
